@@ -1,0 +1,29 @@
+{
+  "name": "bot-whatsapp",
+  "version": "1.0.0",
+  "description": "Bot de pedidos para restaurante via WhatsApp + dashboard en tiempo real",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "keywords": [
+    "whatsapp",
+    "bot",
+    "baileys",
+    "restaurante",
+    "pedidos"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "baileys": "^6.7.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.7.5"
+  },
+  "allowScripts": {
+    "baileys@6.7.24": true,
+    "protobufjs@7.6.5": true
+  }
+}

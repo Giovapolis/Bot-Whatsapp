@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BotWhatsApp — Dashboard</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; color: #1a1a1a; }
+    .header { background: #075e54; color: #fff; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+    .header h1 { font-size: 20px; font-weight: 600; }
+    .status { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #e53935; }
+    .status-dot.online { background: #43a047; }
+    .container { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
+    .qr-section { text-align: center; padding: 40px 0; }
+    .qr-section img { width: 280px; height: 280px; border-radius: 12px; border: 4px solid #fff; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+    .qr-section p { margin-top: 16px; color: #666; font-size: 15px; }
+    .empty-orders { text-align: center; padding: 60px 0; color: #999; font-size: 16px; }
+    .order-card { background: #fff; border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); display: flex; align-items: flex-start; gap: 16px; }
+    .order-info { flex: 1; min-width: 0; }
+    .order-name { font-weight: 600; font-size: 16px; margin-bottom: 2px; }
+    .order-phone { color: #888; font-size: 13px; }
+    .order-message { margin-top: 8px; background: #f8f9fa; padding: 10px 14px; border-radius: 8px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
+    .order-time { font-size: 12px; color: #aaa; margin-top: 6px; }
+    .btn-attend { background: #25d366; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: background 0.2s; }
+    .btn-attend:hover { background: #1da851; }
+    .counter { background: rgba(255,255,255,0.2); padding: 2px 10px; border-radius: 12px; font-size: 14px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🍽️ Pedidos</h1>
+    <div class="status">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Desconectado</span>
+      <span class="counter" id="orderCount">0</span>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="qr-section" id="qrSection">
+      <div id="qrImage"></div>
+      <p>Escanea el código QR con WhatsApp para vincular el bot</p>
+    </div>
+
+    <div id="ordersList"></div>
+    <div class="empty-orders hidden" id="emptyOrders">
+      <p>📦 No hay pedidos nuevos aún</p>
+      <p style="margin-top:4px;font-size:14px;color:#bbb;">Los pedidos aparecerán aquí en tiempo real</p>
+    </div>
+  </div>
+
+  <script>
+    const socket = io()
+    const qrSection = document.getElementById('qrSection')
+    const qrImage = document.getElementById('qrImage')
+    const ordersList = document.getElementById('ordersList')
+    const emptyOrders = document.getElementById('emptyOrders')
+    const statusDot = document.getElementById('statusDot')
+    const statusText = document.getElementById('statusText')
+    const orderCount = document.getElementById('orderCount')
+
+    let pedidos = []
+    let conectado = false
+
+    socket.on('qr', ({ qrDataUri }) => {
+      qrSection.classList.remove('hidden')
+      qrImage.innerHTML = `<img src="${qrDataUri}" alt="QR WhatsApp">`
+      setStatus(false)
+    })
+
+    socket.on('conn_ready', () => {
+      qrSection.classList.add('hidden')
+      qrImage.innerHTML = ''
+      setStatus(true)
+    })
+
+    socket.on('conn_error', () => {
+      qrSection.classList.remove('hidden')
+      setStatus(false)
+    })
+
+    socket.on('nuevo_pedido', (pedido) => {
+      pedidos.unshift(pedido)
+      renderizar()
+    })
+
+    function atender(id) {
+      pedidos = pedidos.filter(p => p.id !== id)
+      renderizar()
+    }
+
+    function renderizar() {
+      orderCount.textContent = pedidos.length
+
+      if (pedidos.length === 0) {
+        ordersList.innerHTML = ''
+        emptyOrders.classList.remove('hidden')
+        return
+      }
+
+      emptyOrders.classList.add('hidden')
+      ordersList.innerHTML = pedidos.map(p => `
+        <div class="order-card">
+          <div class="order-info">
+            <div class="order-name">${escapeHtml(p.nombre)}</div>
+            <div class="order-phone">${escapeHtml(p.telefono)}</div>
+            <div class="order-message">${escapeHtml(p.mensaje)}</div>
+            <div class="order-time">${p.hora}</div>
+          </div>
+          <button class="btn-attend" onclick="atender('${p.id}')">✓ Atendido</button>
+        </div>
+      `).join('')
+    }
+
+    function setStatus(online) {
+      conectado = online
+      statusDot.className = 'status-dot' + (online ? ' online' : '')
+      statusText.textContent = online ? 'Conectado' : 'Desconectado'
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div')
+      div.textContent = str
+      return div.innerHTML
+    }
+
+    renderizar()
+  </script>
+</body>
+</html>
