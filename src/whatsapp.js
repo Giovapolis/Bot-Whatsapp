@@ -17,11 +17,13 @@ async function iniciar(io) {
 
   sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
     if (qr) {
+      console.log('📱 QR generado — escanea con WhatsApp')
       const qrDataUri = await QRCode.toDataURL(qr, { width: 400, margin: 2 })
       io.emit('qr', { qr, qrDataUri })
     }
 
     if (connection === 'open') {
+      console.log('✅ WhatsApp conectado')
       io.emit('conn_ready')
     }
 

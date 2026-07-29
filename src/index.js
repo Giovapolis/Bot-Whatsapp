@@ -10,7 +10,8 @@ async function main() {
   const io = server.iniciar(puerto)
   const sock = await whatsapp.iniciar(io)
 
-  sock.ev.on('messages.upsert', async ({ messages }) => {
+  sock.ev.on('messages.upsert', async ({ messages, type }) => {
+    if (type !== 'notify') return
     for (const msg of messages) {
       if (msg.key.fromMe) continue
       if (!msg.message) continue

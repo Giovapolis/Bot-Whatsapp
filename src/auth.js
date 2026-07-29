@@ -1,22 +1,45 @@
-function authMiddleware(req, res, next) {
-  const auth = req.headers.authorization
+const crypto = require('crypto')
 
-  if (!auth) {
-    return res.status(401).set('WWW-Authenticate', 'Basic realm="Dashboard"').end()
-  }
+const sessions = new Map()
 
-  const base64 = auth.split(' ')[1]
-  const creds = Buffer.from(base64, 'base64').toString('utf-8')
-  const [user, pass] = creds.split(':')
+function crearToken() {
+  return crypto.randomUUID()
+}
 
+function login(user, pass) {
   const expectedUser = process.env.DASHBOARD_USER || 'admin'
   const expectedPass = process.env.DASHBOARD_PASS || 'secreto123'
 
-  if (user === expectedUser && pass === expectedPass) {
-    return next()
+  if (user !== expectedUser || pass !== expectedPass) {
+    return null
   }
 
-  res.status(401).set('WWW-Authenticate', 'Basic realm="Dashboard"').end()
+  const token = crearToken()
+  sessions.set(token, { user, createdAt: Date.now() })
+  return token
 }
 
-module.exports = { authMiddleware }
+function validarToken(token) {
+  return sessions.has(token)
+}
+
+function authMiddleware(req, res, next) {
+  const token = req.headers.authorization?.replace('Bearer ', '') || req.query?.token
+
+  if (!token || !validarToken(token)) {
+    return res.status(401).json({ error: 'No autorizado' })
+  }
+
+  req.user = sessions.get(token)
+  next()
+}
+
+function authSocket(socket, next) {
+  const token = socket.handshake.auth?.token
+  if (!token || !validarToken(token)) {
+    return next(new Error('No autorizado'))
+  }
+  next()
+}
+
+module.exports = { login, validarToken, authMiddleware, authSocket }
