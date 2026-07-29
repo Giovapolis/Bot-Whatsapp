@@ -9,10 +9,11 @@ async function iniciar(io) {
 
   sock = makeWASocket({
     auth: state,
-    browser: Browsers.windows('Desktop'),
+    browser: Browsers.ubuntu('Chrome'),
     syncFullHistory: false,
     markOnlineOnConnect: false,
-    defaultQueryTimeoutMs: 120000
+    defaultQueryTimeoutMs: 300000,
+    connectTimeoutMs: 300000
   })
 
   sock.ev.on('creds.update', saveCreds)
@@ -34,8 +35,12 @@ async function iniciar(io) {
 
     if (connection === 'close') {
       const reason = lastDisconnect?.error?.output?.statusCode
-      const shouldReconnect = reason !== DisconnectReason.loggedOut
-      if (shouldReconnect) {
+      const isLoggedOut = reason === DisconnectReason.loggedOut
+      const isTimeout = lastDisconnect?.error?.message === 'Timed Out'
+      if (isTimeout) {
+        console.warn('[WA] Timeout en init queries, reconectando...')
+        iniciar(io)
+      } else if (!isLoggedOut) {
         iniciar(io)
       } else {
         estado.conectado = false
