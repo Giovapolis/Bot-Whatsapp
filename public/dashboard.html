@@ -3,190 +3,311 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BotWhatsApp — Dashboard</title>
+  <title>Comida Rica — Dashboard</title>
   <script src="/socket.io/socket.io.js"></script>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f8f6f3; color: #1a1a1a;
+      background: #f5f3ff; color: #1a1a1a;
       -webkit-font-smoothing: antialiased;
     }
 
     .login-wrapper {
       min-height: 100vh; display: flex; align-items: center; justify-content: center;
-      background: linear-gradient(135deg, #f8f6f3 0%, #f0ece7 100%);
+      background: linear-gradient(135deg, #1a1a1a 0%, #2d1b69 50%, #1a1a1a 100%);
       padding: 24px;
     }
     .login-card {
-      background: #fff; border-radius: 16px; padding: 48px 40px 40px;
+      background: #fff; border-radius: 20px; padding: 48px 40px 40px;
       width: 100%; max-width: 400px;
-      box-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.04), 0 16px 40px rgba(0,0,0,0.06);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.5);
       text-align: center;
     }
-    .login-icon {
-      width: 56px; height: 56px; background: #25d366; border-radius: 16px;
-      display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 20px; font-size: 28px;
+    .login-logo {
+      width: 64px; height: 64px; background: linear-gradient(135deg, #7c3aed, #6d28d9);
+      border-radius: 18px; display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px; font-size: 30px; box-shadow: 0 4px 12px rgba(109,40,217,0.3);
     }
-    .login-title { font-size: 22px; font-weight: 600; letter-spacing: -0.3px; }
+    .login-title { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; color: #1a1a1a; }
     .login-subtitle { font-size: 14px; color: #8a8a8a; margin-top: 4px; margin-bottom: 28px; }
     .login-error {
       background: #fef2f2; color: #dc2626; font-size: 13px; font-weight: 500;
       padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; display: none;
     }
     .form-group { margin-bottom: 16px; text-align: left; }
-    .form-group label { display: block; font-size: 13px; font-weight: 500; color: #4a4a4a; margin-bottom: 6px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: #4a4a4a; margin-bottom: 6px; }
     .form-group input {
-      width: 100%; padding: 10px 14px; font-size: 15px;
-      border: 1px solid #e2e0dc; border-radius: 8px; background: #fff;
+      width: 100%; padding: 11px 14px; font-size: 15px;
+      border: 1.5px solid #e2e0dc; border-radius: 10px; background: #fff;
       outline: none; transition: border-color 0.15s, box-shadow 0.15s;
     }
-    .form-group input:focus {
-      border-color: #25d366; box-shadow: 0 0 0 3px rgba(37,211,102,0.12);
-    }
-    .btn-login {
+    .form-group input:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.12); }
+    .btn-primary {
       width: 100%; padding: 12px; font-size: 15px; font-weight: 600;
-      background: #25d366; color: #fff; border: none; border-radius: 8px;
-      cursor: pointer; transition: background 0.15s, transform 0.1s; margin-top: 4px;
+      background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #fff;
+      border: none; border-radius: 10px; cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s; margin-top: 4px;
     }
-    .btn-login:hover { background: #1da851; }
-    .btn-login:active { transform: scale(0.98); }
-    .btn-login:disabled { opacity: 0.5; cursor: default; transform: none; }
+    .btn-primary:hover { opacity: 0.92; }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.5; cursor: default; transform: none; }
 
-    .app-header {
-      background: #075e54; color: #fff; padding: 16px 24px;
-      display: flex; align-items: center; justify-content: space-between;
+    .app { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 260px; background: #1a1a1a; color: #fff;
+      display: flex; flex-direction: column; flex-shrink: 0;
     }
-    .app-header h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.2px; }
-    .app-status { display: flex; align-items: center; gap: 10px; font-size: 13px; }
-    .status-dot { width: 9px; height: 9px; border-radius: 50%; background: #e53935; transition: background 0.3s; }
-    .status-dot.online { background: #43a047; }
-    .badge {
-      background: rgba(255,255,255,0.18); padding: 2px 10px; border-radius: 10px;
-      font-size: 13px; font-weight: 500;
+    .sidebar-brand {
+      padding: 20px 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex; align-items: center; gap: 10px;
     }
-    .container { max-width: 840px; margin: 0 auto; padding: 24px 16px; }
-    .qr-section { text-align: center; padding: 60px 20px; }
-    .qr-section img { width: 260px; height: 260px; border-radius: 14px; box-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06); }
-    .qr-section p { margin-top: 16px; color: #7a7a7a; font-size: 14px; line-height: 1.5; }
-    .qr-section strong { color: #1a1a1a; font-weight: 500; }
-    .empty-state { text-align: center; padding: 80px 20px; }
-    .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
-    .empty-state p { color: #8a8a8a; font-size: 15px; }
-    .empty-state .sub { color: #b0b0b0; font-size: 13px; margin-top: 4px; }
+    .sidebar-brand .icon {
+      width: 36px; height: 36px; background: linear-gradient(135deg, #7c3aed, #6d28d9);
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .sidebar-brand h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.2px; }
+    .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 20px;
+      color: rgba(255,255,255,0.55); font-size: 13px; font-weight: 500;
+      cursor: pointer; transition: color 0.15s, background 0.15s; border: none; background: none; width: 100%; text-align: left;
+    }
+    .nav-item:hover { color: #fff; background: rgba(255,255,255,0.04); }
+    .nav-item.active { color: #fff; background: rgba(124,58,237,0.15); border-right: 2px solid #7c3aed; }
+    .nav-item .badge {
+      margin-left: auto; background: rgba(255,255,255,0.1); padding: 1px 8px;
+      border-radius: 8px; font-size: 11px; font-weight: 600;
+    }
+    .sidebar-section { padding: 12px 20px; }
+    .sidebar-section h3 {
+      font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px;
+      color: rgba(255,255,255,0.25); margin-bottom: 10px;
+    }
+    .qr-panel { text-align: center; padding: 8px 0; }
+    .qr-panel img {
+      width: 180px; height: 180px; border-radius: 10px;
+      background: #fff; padding: 8px;
+    }
+    .qr-panel .hint { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 8px; line-height: 1.4; }
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500;
+      padding: 4px 12px; border-radius: 20px; margin-top: 6px;
+    }
+    .status-badge.online { background: rgba(16,185,129,0.15); color: #34d399; }
+    .status-badge.offline { background: rgba(239,68,68,0.15); color: #f87171; }
+    .status-badge .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .status-badge.online .dot { background: #34d399; }
+    .status-badge.offline .dot { background: #f87171; }
+    .sidebar-logout {
+      padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .btn-logout {
+      width: 100%; padding: 9px; font-size: 12px; font-weight: 500;
+      background: transparent; color: rgba(255,255,255,0.35); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px; cursor: pointer; transition: color 0.15s, border-color 0.15s;
+    }
+    .btn-logout:hover { color: #f87171; border-color: rgba(248,113,113,0.3); }
+
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .main-header {
+      background: #fff; padding: 16px 24px; display: flex; align-items: center;
+      justify-content: space-between; border-bottom: 1px solid #e8e5f0;
+    }
+    .main-header h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+    .main-header .meta { font-size: 13px; color: #8a8a8a; }
+    .main-content { flex: 1; padding: 20px 24px; overflow-y: auto; }
+
+    .empty-state {
+      text-align: center; padding: 60px 20px; background: #fff;
+      border-radius: 14px; box-shadow: 0 0 0 1px rgba(0,0,0,0.03), 0 1px 4px rgba(0,0,0,0.03);
+    }
+    .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-state p { color: #8a8a8a; font-size: 14px; }
+    .empty-state .sub { color: #b0b0b0; font-size: 12px; margin-top: 4px; }
+
+    .order-list { display: flex; flex-direction: column; gap: 8px; }
     .order-card {
-      background: #fff; border-radius: 12px; padding: 16px 20px; margin-bottom: 10px;
-      box-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 1px 4px rgba(0,0,0,0.04);
-      display: flex; align-items: flex-start; gap: 16px; transition: opacity 0.2s;
+      background: #fff; border-radius: 12px; padding: 16px 20px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.03), 0 1px 4px rgba(0,0,0,0.03);
+      display: flex; align-items: flex-start; gap: 16px;
+      transition: opacity 0.3s, transform 0.3s;
     }
-    .order-card.removing { opacity: 0; }
+    .order-card.removing { opacity: 0; transform: translateX(20px); }
+    .order-card .accent {
+      width: 4px; align-self: stretch; background: linear-gradient(180deg, #7c3aed, #a78bfa);
+      border-radius: 4px; flex-shrink: 0;
+    }
     .order-info { flex: 1; min-width: 0; }
-    .order-header { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
-    .order-name { font-weight: 600; font-size: 15px; }
-    .order-phone { color: #9a9a9a; font-size: 12px; }
+    .order-header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .order-name { font-weight: 600; font-size: 14px; }
+    .order-phone { color: #a0a0a0; font-size: 12px; }
     .order-message {
-      margin-top: 8px; background: #f4f2ef; padding: 10px 14px; border-radius: 8px;
-      font-size: 14px; line-height: 1.5; white-space: pre-wrap; color: #2a2a2a;
+      margin-top: 8px; background: #f8f7fc; padding: 10px 14px; border-radius: 8px;
+      font-size: 13px; line-height: 1.5; white-space: pre-wrap; color: #2a2a2a;
+      border-left: 2px solid #e0daf5;
     }
-    .order-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
-    .order-time { font-size: 12px; color: #b0b0b0; }
+    .order-footer {
+      display: flex; align-items: center; justify-content: space-between; margin-top: 10px;
+    }
+    .order-time { font-size: 11px; color: #b8b8b8; }
+    .order-actions { display: flex; gap: 6px; }
+    .btn-maps {
+      background: #f0edf8; color: #5b3e9e; border: none; padding: 7px 12px;
+      border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; text-decoration: none;
+      transition: background 0.15s;
+    }
+    .btn-maps:hover { background: #e2daf5; }
     .btn-attend {
-      background: #25d366; color: #fff; border: none; padding: 8px 18px;
-      border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
-      transition: background 0.15s, transform 0.1s;
+      background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #fff;
+      border: none; padding: 7px 16px; border-radius: 8px; font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: opacity 0.15s, transform 0.1s;
     }
-    .btn-attend:hover { background: #1da851; }
+    .btn-attend:hover { opacity: 0.9; }
     .btn-attend:active { transform: scale(0.97); }
+
     .hidden { display: none !important; }
-    .conn-success { color: #43a047; }
   </style>
 </head>
 <body>
   <div id="loginView" class="login-wrapper">
     <div class="login-card">
-      <div class="login-icon">🍽️</div>
-      <div class="login-title">BotWhatsApp</div>
-      <div class="login-subtitle">Accede al panel de pedidos</div>
-      <div class="login-error" id="loginError">Credenciales inválidas</div>
+      <div class="login-logo">🍽️</div>
+      <div class="login-title">Comida Rica</div>
+      <div class="login-subtitle">Panel de administracion</div>
+      <div class="login-error" id="loginError">Credenciales invalidas</div>
       <form id="loginForm" autocomplete="off">
         <div class="form-group">
           <label for="user">Usuario</label>
           <input type="text" id="user" name="user" placeholder="admin" required autofocus>
         </div>
         <div class="form-group">
-          <label for="pass">Contraseña</label>
-          <input type="password" id="pass" name="pass" placeholder="••••••••" required>
+          <label for="pass">Contrasena</label>
+          <input type="password" id="pass" name="pass" placeholder="...." required>
         </div>
-        <button type="submit" class="btn-login" id="loginBtn">Ingresar</button>
+        <button type="submit" class="btn-primary" id="loginBtn">Ingresar</button>
       </form>
     </div>
   </div>
 
-  <div id="dashboardView" class="hidden">
-    <div class="app-header">
-      <h1>🍽️ Pedidos</h1>
-      <div class="app-status">
-        <span class="status-dot" id="statusDot"></span>
-        <span id="statusText">Desconectado</span>
-        <span class="badge" id="orderCount">0</span>
-        <button onclick="salir()" style="background:none;border:none;color:rgba(255,255,255,0.6);cursor:pointer;font-size:13px;padding:4px 8px;margin-left:4px;">Salir</button>
+  <div id="dashboardView" class="app hidden">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="icon">🍽️</div>
+        <h2>Comida Rica</h2>
       </div>
-    </div>
-    <div class="container">
-      <div class="qr-section" id="qrSection">
-        <div id="qrImage"></div>
-        <p><strong>Escanea el código QR</strong> con WhatsApp para vincular el bot</p>
+      <nav class="sidebar-nav">
+        <div class="sidebar-section">
+          <h3>Conexion</h3>
+          <div class="qr-panel" id="qrPanel">
+            <div id="qrImage"></div>
+            <div class="hint">Escanea con WhatsApp<br>para vincular el bot</div>
+          </div>
+          <div style="display:flex;justify-content:center">
+            <span class="status-badge offline" id="statusBadge">
+              <span class="dot"></span>
+              <span id="statusText">Desconectado</span>
+            </span>
+          </div>
+        </div>
+        <div class="sidebar-section">
+          <h3>Navegacion</h3>
+          <button class="nav-item active" data-section="pedidos" onclick="cambiarSeccion('pedidos')">
+            Pedidos <span class="badge" id="orderCount">0</span>
+          </button>
+          <button class="nav-item" data-section="qr" onclick="cambiarSeccion('qr')">
+            QR / Conexion
+          </button>
+        </div>
+      </nav>
+      <div class="sidebar-logout">
+        <button class="btn-logout" onclick="salir()">Cerrar sesion</button>
       </div>
-      <div id="ordersList"></div>
-      <div class="empty-state hidden" id="emptyOrders">
-        <div class="icon">📦</div>
-        <p>No hay pedidos nuevos</p>
-        <div class="sub">Los pedidos aparecerán aquí en tiempo real</div>
+    </aside>
+
+    <main class="main">
+      <header class="main-header">
+        <div>
+          <h1 id="sectionTitle">Pedidos</h1>
+          <span class="meta" id="sectionMeta">Tiempo real</span>
+        </div>
+      </header>
+
+      <div class="main-content">
+        <div id="sectionPedidos">
+          <div id="ordersList" class="order-list"></div>
+          <div class="empty-state" id="emptyOrders">
+            <div class="icon">📦</div>
+            <p>No hay pedidos nuevos</p>
+            <div class="sub">Los pedidos apareceran aqui en tiempo real</div>
+          </div>
+        </div>
+
+        <div id="sectionQr" class="hidden" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;background:#fff;border-radius:14px;box-shadow:0 0 0 1px rgba(0,0,0,0.03);">
+          <h2 style="font-size:18px;font-weight:600;margin-bottom:8px;">Vinculacion WhatsApp</h2>
+          <p style="font-size:13px;color:#8a8a8a;margin-bottom:24px;">
+            Escanea el codigo QR con tu WhatsApp para conectar el bot
+          </p>
+          <div style="background:#fff;border-radius:14px;padding:12px;box-shadow:0 0 0 1px rgba(0,0,0,0.06),0 8px 24px rgba(0,0,0,0.06);">
+            <img id="qrLarge" src="" alt="QR WhatsApp" style="width:260px;height:260px;border-radius:10px;display:block;">
+          </div>
+          <div id="qrStatusMsg" style="margin-top:16px;font-size:13px;font-weight:500;"></div>
+          <p style="font-size:11px;color:#b0b0b0;margin-top:12px;">
+            1. Abre WhatsApp en tu celular<br>
+            2. Toca Menu > Dispositivos vinculados<br>
+            3. Escanea este codigo
+          </p>
+        </div>
       </div>
-    </div>
+    </main>
   </div>
 
   <script>
-    let token = sessionStorage.getItem('token')
-    let socket = null
-    let pedidos = []
+    var token = sessionStorage.getItem('token')
+    var socket = null
+    var pedidos = []
+    var conectado = false
+    var qrActual = ''
 
     async function init() {
       if (!token) { mostrarLogin(); return }
-
       try {
-        const res = await fetch('/api/check-auth', { headers: { 'Authorization': 'Bearer ' + token } })
+        var res = await fetch('/api/check-auth', { headers: { 'Authorization': 'Bearer ' + token } })
         if (!res.ok) { sessionStorage.removeItem('token'); mostrarLogin(); return }
-      } catch {
-        sessionStorage.removeItem('token'); mostrarLogin(); return
-      }
-
+      } catch(e) { sessionStorage.removeItem('token'); mostrarLogin(); return }
       mostrarDashboard()
       conectarSocket()
     }
 
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
       e.preventDefault()
-      const btn = document.getElementById('loginBtn')
-      const err = document.getElementById('loginError')
+      var btn = document.getElementById('loginBtn')
+      var err = document.getElementById('loginError')
       btn.disabled = true; btn.textContent = 'Ingresando...'
       err.style.display = 'none'
-
       try {
-        const res = await fetch('/api/login', {
+        var res = await fetch('/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user: document.getElementById('user').value, pass: document.getElementById('pass').value })
+          body: JSON.stringify({
+            user: document.getElementById('user').value,
+            pass: document.getElementById('pass').value
+          })
         })
-        const data = await res.json()
-        if (!res.ok) { err.textContent = data.error || 'Credenciales inválidas'; err.style.display = 'block'; btn.disabled = false; btn.textContent = 'Ingresar'; return }
+        var data = await res.json()
+        if (!res.ok) {
+          err.textContent = 'Credenciales invalidas'
+          err.style.display = 'block'
+          btn.disabled = false; btn.textContent = 'Ingresar'
+          return
+        }
         token = data.token
         sessionStorage.setItem('token', token)
         mostrarDashboard()
         conectarSocket()
-      } catch {
-        err.textContent = 'Error de conexión'; err.style.display = 'block'
+      } catch(e) {
+        err.textContent = 'Error de conexion'; err.style.display = 'block'
         btn.disabled = false; btn.textContent = 'Ingresar'
       }
     })
@@ -209,79 +330,131 @@
       mostrarLogin()
     }
 
+    function cambiarSeccion(seccion) {
+      document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active') })
+      var target = document.querySelector('.nav-item[data-section="' + seccion + '"]')
+      if (target) target.classList.add('active')
+      document.getElementById('sectionPedidos').classList.add('hidden')
+      document.getElementById('sectionQr').classList.add('hidden')
+      if (seccion === 'pedidos') {
+        document.getElementById('sectionPedidos').classList.remove('hidden')
+        document.getElementById('sectionTitle').textContent = 'Pedidos'
+        document.getElementById('sectionMeta').textContent = 'Tiempo real'
+      } else {
+        document.getElementById('sectionQr').classList.remove('hidden')
+        document.getElementById('sectionTitle').textContent = 'QR / Conexion'
+        document.getElementById('sectionMeta').textContent = conectado ? 'Conectado' : 'Desconectado'
+        actualizarQrSection()
+      }
+    }
+
+    function actualizarQrSection() {
+      var img = document.getElementById('qrLarge')
+      var msg = document.getElementById('qrStatusMsg')
+      if (conectado) {
+        img.style.display = 'none'
+        msg.innerHTML = '<span style="color:#34d399;">WhatsApp conectado correctamente</span>'
+      } else if (qrActual) {
+        img.style.display = 'block'
+        img.src = qrActual
+        msg.innerHTML = '<span style="color:#8a8a8a;">Esperando escaneo...</span>'
+      }
+    }
+
     function conectarSocket() {
       if (socket) socket.disconnect()
-      socket = io({ auth: { token } })
+      socket = io({ auth: { token: token } })
 
-      socket.on('connect_error', () => {
-        document.getElementById('statusDot').className = 'status-dot'
-        document.getElementById('statusText').textContent = 'Error de conexión'
+      socket.on('connect_error', function() {
+        document.getElementById('statusBadge').className = 'status-badge offline'
+        document.getElementById('statusText').textContent = 'Error'
       })
 
-      socket.on('qr', ({ qrDataUri }) => {
-        document.getElementById('qrSection').classList.remove('hidden')
-        document.getElementById('qrImage').innerHTML = `<img src="${qrDataUri}" alt="QR WhatsApp">`
+      socket.on('qr', function(data) {
+        qrActual = data.qrDataUri
+        document.getElementById('qrImage').innerHTML = '<img src="' + data.qrDataUri + '" alt="QR">'
+        document.getElementById('qrLarge').src = data.qrDataUri
+        document.getElementById('qrLarge').style.display = 'block'
+        document.getElementById('qrStatusMsg').innerHTML = '<span style="color:#8a8a8a;">Esperando escaneo...</span>'
         setStatus(false)
       })
 
-      socket.on('conn_ready', () => {
-        document.getElementById('qrSection').classList.add('hidden')
+      socket.on('conn_ready', function() {
+        conectado = true
         document.getElementById('qrImage').innerHTML = ''
+        document.getElementById('qrLarge').style.display = 'none'
+        document.getElementById('qrStatusMsg').innerHTML = '<span style="color:#34d399;">WhatsApp conectado correctamente</span>'
         setStatus(true)
       })
 
-      socket.on('conn_error', () => {
-        document.getElementById('qrSection').classList.remove('hidden')
+      socket.on('conn_error', function() {
+        conectado = false
         setStatus(false)
       })
 
-      socket.on('nuevo_pedido', (pedido) => {
+      socket.on('nuevo_pedido', function(pedido) {
         pedidos.unshift(pedido)
         renderizar()
       })
     }
 
     function atender(id) {
-      pedidos = pedidos.filter(p => p.id !== id)
-      renderizar()
+      var card = document.querySelector('[data-id="' + id + '"]')
+      if (card) card.classList.add('removing')
+      setTimeout(function() {
+        pedidos = pedidos.filter(function(p) { return p.id !== id })
+        renderizar()
+      }, 300)
+    }
+
+    function abrirMapas(lat, lng) {
+      window.open('https://www.google.com/maps?q=' + lat + ',' + lng, '_blank')
     }
 
     function renderizar() {
       document.getElementById('orderCount').textContent = pedidos.length
-      const list = document.getElementById('ordersList')
-      const empty = document.getElementById('emptyOrders')
-
+      var list = document.getElementById('ordersList')
+      var empty = document.getElementById('emptyOrders')
       if (pedidos.length === 0) {
         list.innerHTML = ''
         empty.classList.remove('hidden')
         return
       }
-
       empty.classList.add('hidden')
-      list.innerHTML = pedidos.map(p => `
-        <div class="order-card">
-          <div class="order-info">
-            <div class="order-header">
-              <span class="order-name">${e(p.nombre)}</span>
-              <span class="order-phone">${e(p.telefono)}</span>
-            </div>
-            <div class="order-message">${e(p.mensaje)}</div>
-            <div class="order-footer">
-              <span class="order-time">${p.hora}</span>
-              <button class="btn-attend" onclick="atender('${p.id}')">✓ Atendido</button>
-            </div>
-          </div>
-        </div>
-      `).join('')
+      list.innerHTML = pedidos.map(function(p) {
+        var mapaBtn = ''
+        if (p.ubicacion && p.ubicacion.lat && p.ubicacion.lng) {
+          mapaBtn = '<a href="javascript:abrirMapas(' + p.ubicacion.lat + ',' + p.ubicacion.lng + ')" class="btn-maps">📍 Mapa</a>'
+        }
+        return '<div class="order-card" data-id="' + p.id + '">' +
+          '<div class="accent"></div>' +
+          '<div class="order-info">' +
+            '<div class="order-header">' +
+              '<span class="order-name">' + e(p.nombre) + '</span>' +
+              '<span class="order-phone">' + e(p.telefono) + '</span>' +
+            '</div>' +
+            '<div class="order-message">' + e(p.mensaje) + '</div>' +
+            '<div class="order-footer">' +
+              '<span class="order-time">' + p.hora + '</span>' +
+              '<div class="order-actions">' +
+                mapaBtn +
+                '<button class="btn-attend" onclick="atender(\'' + p.id + '\')">Aceptar</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>'
+      }).join('')
     }
 
     function setStatus(online) {
-      document.getElementById('statusDot').className = 'status-dot' + (online ? ' online' : '')
+      conectado = online
+      var badge = document.getElementById('statusBadge')
+      badge.className = 'status-badge ' + (online ? 'online' : 'offline')
       document.getElementById('statusText').textContent = online ? 'Conectado' : 'Desconectado'
     }
 
     function e(str) {
-      const d = document.createElement('div')
+      var d = document.createElement('div')
       d.textContent = str
       return d.innerHTML
     }

@@ -15,7 +15,7 @@ app.post('/api/login', (req, res) => {
   const { user, pass } = req.body
   const token = login(user, pass)
   if (!token) {
-    return res.status(401).json({ error: 'Credenciales inválidas' })
+    return res.status(401).json({ error: 'Credenciales invalidas' })
   }
   res.json({ token })
 })
@@ -32,8 +32,20 @@ io.use(authSocket)
 
 function iniciar(puerto) {
   server.listen(puerto, () => {
-    console.log(`Dashboard: http://localhost:${puerto}`)
+    console.log('Dashboard: http://localhost:' + puerto)
   })
+
+  io.on('connection', (socket) => {
+    const whatsapp = require('./whatsapp')
+    const estado = whatsapp.obtenerEstado()
+    if (estado.qrDataUri) {
+      socket.emit('qr', { qrDataUri: estado.qrDataUri })
+    }
+    if (estado.conectado) {
+      socket.emit('conn_ready')
+    }
+  })
+
   return io
 }
 

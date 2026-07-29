@@ -2,6 +2,7 @@ const { makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers } = requ
 const QRCode = require('qrcode')
 
 let sock = null
+let estado = { conectado: false, qrDataUri: null }
 
 async function iniciar(io) {
   const { state, saveCreds } = await useMultiFileAuthState('auth')
@@ -17,13 +18,16 @@ async function iniciar(io) {
 
   sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
     if (qr) {
-      console.log('📱 QR generado — escanea con WhatsApp')
-      const qrDataUri = await QRCode.toDataURL(qr, { width: 400, margin: 2 })
-      io.emit('qr', { qr, qrDataUri })
+      console.log('[QR] Codigo QR generado - escanea con WhatsApp')
+      estado.qrDataUri = await QRCode.toDataURL(qr, { width: 400, margin: 2 })
+      estado.conectado = false
+      io.emit('qr', { qrDataUri: estado.qrDataUri })
     }
 
     if (connection === 'open') {
-      console.log('✅ WhatsApp conectado')
+      console.log('[OK] WhatsApp conectado')
+      estado.conectado = true
+      estado.qrDataUri = null
       io.emit('conn_ready')
     }
 
@@ -33,7 +37,8 @@ async function iniciar(io) {
       if (shouldReconnect) {
         iniciar(io)
       } else {
-        io.emit('conn_error', { error: 'Sesión cerrada. Escanea el QR nuevamente.' })
+        estado.conectado = false
+        io.emit('conn_error', { error: 'Sesion cerrada. Escanea el QR nuevamente.' })
       }
     }
   })
@@ -41,8 +46,12 @@ async function iniciar(io) {
   return sock
 }
 
+function obtenerEstado() {
+  return estado
+}
+
 function obtenerSocket() {
   return sock
 }
 
-module.exports = { iniciar, obtenerSocket }
+module.exports = { iniciar, obtenerEstado, obtenerSocket }
