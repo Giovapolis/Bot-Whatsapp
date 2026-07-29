@@ -3,6 +3,7 @@ const http = require('http')
 const { Server } = require('socket.io')
 const path = require('path')
 const { login, authMiddleware, authSocket } = require('./auth')
+const db = require('./database')
 
 const app = express()
 const server = http.createServer(app)
@@ -33,10 +34,14 @@ io.use(authSocket)
 
 function agregarPedido(data) {
   pedidos.unshift(data)
+  db.guardarPedido(data)
   io.emit('nuevo_pedido', data)
 }
 
-function iniciar(puerto) {
+async function iniciar(puerto) {
+  const guardados = await db.inicializar()
+  pedidos.push(...guardados)
+
   server.listen(puerto, () => {
     console.log('Dashboard: http://localhost:' + puerto)
   })
@@ -59,6 +64,7 @@ function iniciar(puerto) {
       const p = pedidos.find(ped => ped.id === id)
       if (p) {
         p.estado = estado
+        db.actualizarEstado(id, estado)
         io.emit('pedido_actualizado', p)
       }
     })

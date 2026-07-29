@@ -6,17 +6,16 @@ const responses = require('./responses')
 const ordenes = require('./ordenes')
 
 const puerto = process.env.PORT || 3000
-const contactosSaludados = new Set()
 
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 async function main() {
-  const io = iniciar(puerto)
+  const io = await iniciar(puerto)
   const sock = await whatsapp.iniciar(io)
 
-  sock.ev.on('messages.upsert', async ({ messages, type }) => {
+  sock.ev.on('messages.upsert', async ({ messages }) => {
     for (const msg of messages) {
       if (msg.key.fromMe) continue
       if (!msg.message) continue
@@ -67,7 +66,7 @@ async function main() {
             console.error('[ERR] ' + err.message)
           }
 
-            if (result.finalizado && result.datosPedido) {
+          if (result.finalizado && result.datosPedido) {
             const id = 'ped_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)
             const datos = result.datosPedido
             let mensajeCompleto = 'Pedido: ' + datos.detalles + '\nBebida: ' + datos.bebidas
@@ -89,31 +88,7 @@ async function main() {
         continue
       }
 
-      const result = responses.procesar(texto)
-
-      if (!contactosSaludados.has(telefono)) {
-        contactosSaludados.add(telefono)
-        if (!result.esKeyword) {
-          const saludo = [
-            'Hola ' + nombre + '! Bienvenido a *Comida Rica* 🍕🌮',
-            '',
-            'Preguntame por:',
-            '- menu, horario',
-            '',
-            'O hace tu pedido directo! 📦',
-            '',
-            '¿En que puedo ayudarte?'
-          ].join('\n')
-          await delay(500)
-          await sock.sendMessage(remitente, { text: saludo })
-          console.log('[OK] Bienvenida a ' + nombre)
-          continue
-        }
-      }
-
-      if (result.esSaludo) {
-        continue
-      }
+      const result = await responses.procesar(texto)
 
       if (result.esPedido) {
         const primerMsg = ordenes.iniciar(telefono, nombre, texto)

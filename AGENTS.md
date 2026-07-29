@@ -5,9 +5,10 @@
 - baileys (WhatsApp WebSocket)
 - Express + Socket.IO (Dashboard)
 - SQLite (dev) / PostgreSQL (prod Docker)
+- Google Gemini / OpenAI / OpenRouter (IA segun AI_PROVIDER)
 
 ## Proyecto
-Bot de pedidos para restaurante "Comida Rica": responde automaticamente por WhatsApp, flujo interactivo de pedido con confirmacion y ubicacion GPS. Dashboard web en tiempo real con login.
+Bot de pedidos para restaurante "Comida Rica": responde automaticamente por WhatsApp con IA, flujo interactivo de pedido con confirmacion y ubicacion GPS. Dashboard web en tiempo real con login.
 
 ## Flujo de pedido
 1. Usuario envia mensaje con intencion de pedido
@@ -20,7 +21,7 @@ Bot de pedidos para restaurante "Comida Rica": responde automaticamente por What
 ## Comandos
 - `npm start` — Iniciar bot + servidor
 - `npm run dev` — Desarrollo con `--watch`
-- `npm test` — (futuro)
+- `node test-ai.js` — Probar respuestas de IA localmente
 
 ## Puertos
 - Dev: 3000
@@ -32,26 +33,40 @@ PORT=3000
 DASHBOARD_USER=admin
 DASHBOARD_PASS=secreto123
 DATABASE_URL=sqlite:./data/bot.db
+
+# IA (OpenRouter default, gratis)
+AI_PROVIDER=openrouter
+AI_API_KEY=sk-or-v1-...
+AI_MODEL=mistralai/mistral-7b-instruct:free
+
+# Para OpenAI solo cambiar:
+# AI_PROVIDER=openai
+# AI_API_KEY=sk-...
+# AI_MODEL=gpt-4o-mini
+# AI_API_URL=https://api.openai.com/v1/chat/completions
 ```
 
 ## Estructura src/
-- `index.js` — Orquestador (bienvenida, messages.upsert, locationMessage)
+- `index.js` — Orquestador (messages.upsert, locationMessage)
 - `whatsapp.js` — Conexion Baileys + QR + estado global
-- `responses.js` — Keywords con emojis, saludos, deteccion de pedido
+- `responses.js` — Procesa mensajes via IA, detecta pedidos
+- `ai.js` — Cliente generico de IA (OpenRouter, OpenAI, Gemini)
+- `negocio.js` — Datos del restaurante (menu, horario, reglas)
 - `ordenes.js` — Maquina de estados del flujo de pedido
-- `server.js` — Express + Socket.IO + login API
+- `server.js` — Express + Socket.IO + login API + persistencia PostgreSQL
+- `database.js` — Capa BD (PostgreSQL en prod, memoria en dev)
 - `auth.js` — Sesiones con tokens UUID
 - `public/dashboard.html` — Dashboard purple/negro con sidebar, QR, pedidos y mapa
-- `database.js` — (Fase 2) Capa BD abstracta
 
 ## Convenciones
 - JavaScript CommonJS (require/module.exports)
 - Sin comentarios en codigo
 - Variables en ingles, mensajes de usuario en espanol
-- Logs sin emojis (ASCII tags: [OK], [MSG], [ERR], [QR])
+- Logs sin emojis (ASCII tags: [OK], [MSG], [ERR], [QR], [GPS], [DB])
 
-## Produccion
+## Produccion (Docker Compose)
 ```bash
-docker build -t bot-whatsapp .
-docker run -d --name bot-wp -p 8080:8080 --env-file .env bot-whatsapp
+export DB_PASSWORD=segura
+export AI_API_KEY=sk-or-v1-...
+docker compose up -d
 ```
