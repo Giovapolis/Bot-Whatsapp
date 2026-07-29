@@ -11,7 +11,8 @@ async function iniciar(io) {
     auth: state,
     browser: Browsers.windows('Desktop'),
     syncFullHistory: false,
-    markOnlineOnConnect: false
+    markOnlineOnConnect: false,
+    defaultQueryTimeoutMs: 120000
   })
 
   sock.ev.on('creds.update', saveCreds)
