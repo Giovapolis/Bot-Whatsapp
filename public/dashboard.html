@@ -136,13 +136,24 @@
     }
     .order-card.removing { opacity: 0; transform: translateX(20px); }
     .order-card .accent {
-      width: 4px; align-self: stretch; background: linear-gradient(180deg, #7c3aed, #a78bfa);
-      border-radius: 4px; flex-shrink: 0;
+      width: 4px; align-self: stretch; border-radius: 4px; flex-shrink: 0;
     }
+    .order-card .accent.estado-nuevo { background: linear-gradient(180deg, #7c3aed, #a78bfa); }
+    .order-card .accent.estado-preparando { background: linear-gradient(180deg, #f59e0b, #fbbf24); }
+    .order-card .accent.estado-entregado { background: linear-gradient(180deg, #10b981, #34d399); }
+
     .order-info { flex: 1; min-width: 0; }
     .order-header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .order-name { font-weight: 600; font-size: 14px; }
     .order-phone { color: #a0a0a0; font-size: 12px; }
+    .estado-tag {
+      font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+      padding: 2px 8px; border-radius: 6px; margin-left: auto;
+    }
+    .estado-tag.nuevo { background: #f0edf8; color: #7c3aed; }
+    .estado-tag.preparando { background: #fef9e7; color: #b45309; }
+    .estado-tag.entregado { background: #ecfdf5; color: #047857; }
+
     .order-message {
       margin-top: 8px; background: #f8f7fc; padding: 10px 14px; border-radius: 8px;
       font-size: 13px; line-height: 1.5; white-space: pre-wrap; color: #2a2a2a;
@@ -166,6 +177,8 @@
     }
     .btn-attend:hover { opacity: 0.9; }
     .btn-attend:active { transform: scale(0.97); }
+    .btn-prep { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .btn-done { background: linear-gradient(135deg, #10b981, #059669); }
 
     .hidden { display: none !important; }
   </style>
@@ -216,6 +229,9 @@
           <button class="nav-item active" data-section="pedidos" onclick="cambiarSeccion('pedidos')">
             Pedidos <span class="badge" id="orderCount">0</span>
           </button>
+          <button class="nav-item" data-section="historial" onclick="cambiarSeccion('historial')">
+            Historial <span class="badge" id="historyCount">0</span>
+          </button>
           <button class="nav-item" data-section="qr" onclick="cambiarSeccion('qr')">
             QR / Conexion
           </button>
@@ -241,6 +257,15 @@
             <div class="icon">📦</div>
             <p>No hay pedidos nuevos</p>
             <div class="sub">Los pedidos apareceran aqui en tiempo real</div>
+          </div>
+        </div>
+
+        <div id="sectionHistorial" class="hidden">
+          <div id="historyList" class="order-list"></div>
+          <div class="empty-state" id="emptyHistory">
+            <div class="icon">📋</div>
+            <p>No hay pedidos en el historial</p>
+            <div class="sub">Los pedidos entregados apareceran aqui</div>
           </div>
         </div>
 
@@ -335,11 +360,16 @@
       var target = document.querySelector('.nav-item[data-section="' + seccion + '"]')
       if (target) target.classList.add('active')
       document.getElementById('sectionPedidos').classList.add('hidden')
+      document.getElementById('sectionHistorial').classList.add('hidden')
       document.getElementById('sectionQr').classList.add('hidden')
       if (seccion === 'pedidos') {
         document.getElementById('sectionPedidos').classList.remove('hidden')
         document.getElementById('sectionTitle').textContent = 'Pedidos'
         document.getElementById('sectionMeta').textContent = 'Tiempo real'
+      } else if (seccion === 'historial') {
+        document.getElementById('sectionHistorial').classList.remove('hidden')
+        document.getElementById('sectionTitle').textContent = 'Historial'
+        document.getElementById('sectionMeta').textContent = pedidos.filter(function(p) { return p.estado === 'entregado' }).length + ' completados'
       } else {
         document.getElementById('sectionQr').classList.remove('hidden')
         document.getElementById('sectionTitle').textContent = 'QR / Conexion'
@@ -396,15 +426,27 @@
         pedidos.unshift(pedido)
         renderizar()
       })
+
+      socket.on('pedidos_actuales', function(data) {
+        pedidos = data
+        renderizar()
+      })
+
+      socket.on('pedido_actualizado', function(pedido) {
+        for (var i = 0; i < pedidos.length; i++) {
+          if (pedidos[i].id === pedido.id) {
+            pedidos[i] = pedido
+            break
+          }
+        }
+        renderizar()
+      })
+
+      socket.emit('obtener_pedidos')
     }
 
-    function atender(id) {
-      var card = document.querySelector('[data-id="' + id + '"]')
-      if (card) card.classList.add('removing')
-      setTimeout(function() {
-        pedidos = pedidos.filter(function(p) { return p.id !== id })
-        renderizar()
-      }, 300)
+    function cambiarEstado(id, nuevoEstado) {
+      socket.emit('cambiar_estado', { id: id, estado: nuevoEstado })
     }
 
     function abrirMapas(lat, lng) {
@@ -412,33 +454,58 @@
     }
 
     function renderizar() {
-      document.getElementById('orderCount').textContent = pedidos.length
-      var list = document.getElementById('ordersList')
-      var empty = document.getElementById('emptyOrders')
-      if (pedidos.length === 0) {
+      var activos = pedidos.filter(function(p) { return p.estado !== 'entregado' })
+      var historial = pedidos.filter(function(p) { return p.estado === 'entregado' })
+
+      document.getElementById('orderCount').textContent = activos.length
+      document.getElementById('historyCount').textContent = historial.length
+
+      var meta = document.getElementById('sectionMeta')
+      if (document.getElementById('sectionHistorial').classList.contains('hidden') === false) {
+        meta.textContent = historial.length + ' completados'
+      }
+
+      renderList('ordersList', 'emptyOrders', activos)
+      renderList('historyList', 'emptyHistory', historial)
+    }
+
+    function renderList(listId, emptyId, items) {
+      var list = document.getElementById(listId)
+      var empty = document.getElementById(emptyId)
+      if (items.length === 0) {
         list.innerHTML = ''
         empty.classList.remove('hidden')
         return
       }
       empty.classList.add('hidden')
-      list.innerHTML = pedidos.map(function(p) {
+      list.innerHTML = items.map(function(p) {
         var mapaBtn = ''
         if (p.ubicacion && p.ubicacion.lat && p.ubicacion.lng) {
           mapaBtn = '<a href="javascript:abrirMapas(' + p.ubicacion.lat + ',' + p.ubicacion.lng + ')" class="btn-maps">📍 Mapa</a>'
         }
+
+        var estadoLabel = p.estado.charAt(0).toUpperCase() + p.estado.slice(1)
+        var btnAccion = ''
+        if (p.estado === 'nuevo') {
+          btnAccion = '<button class="btn-attend btn-prep" onclick="cambiarEstado(\'' + p.id + '\',\'preparando\')">Preparando</button>'
+        } else if (p.estado === 'preparando') {
+          btnAccion = '<button class="btn-attend btn-done" onclick="cambiarEstado(\'' + p.id + '\',\'entregado\')">Entregado</button>'
+        }
+
         return '<div class="order-card" data-id="' + p.id + '">' +
-          '<div class="accent"></div>' +
+          '<div class="accent estado-' + p.estado + '"></div>' +
           '<div class="order-info">' +
             '<div class="order-header">' +
               '<span class="order-name">' + e(p.nombre) + '</span>' +
               '<span class="order-phone">' + e(p.telefono) + '</span>' +
+              '<span class="estado-tag ' + p.estado + '">' + estadoLabel + '</span>' +
             '</div>' +
             '<div class="order-message">' + e(p.mensaje) + '</div>' +
             '<div class="order-footer">' +
               '<span class="order-time">' + p.hora + '</span>' +
               '<div class="order-actions">' +
                 mapaBtn +
-                '<button class="btn-attend" onclick="atender(\'' + p.id + '\')">Aceptar</button>' +
+                btnAccion +
               '</div>' +
             '</div>' +
           '</div>' +

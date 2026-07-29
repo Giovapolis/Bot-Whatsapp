@@ -1,9 +1,0 @@
-Dashboard: http://localhost:3000
-{"level":30,"time":"2026-07-29T02:34:14.806Z","pid":23040,"hostname":"GIOVAPOLIS-PC","class":"baileys","browser":["Windows","Desktop","10.0.22631"],"helloMsg":{"clientHello":{"ephemeral":"hKd8ssSvlf65e54WsGy3A9bRP0Bp75Tv5RwQW8tKFW4="}},"msg":"connected to WA"}
-{"level":30,"time":"2026-07-29T02:34:14.877Z","pid":23040,"hostname":"GIOVAPOLIS-PC","class":"baileys","node":{"username":"5215538809803","passive":false,"userAgent":{"platform":"WEB","appVersion":{"primary":2,"secondary":3000,"tertiary":1043857760},"mcc":"000","mnc":"000","osVersion":"0.1","device":"Desktop","osBuildNumber":"0.1","releaseChannel":"RELEASE","localeLanguageIso6391":"en","localeCountryIso31661Alpha2":"US"},"webInfo":{"webSubPlatform":"WEB_BROWSER"},"connectType":"WIFI_UNKNOWN","connectReason":"USER_ACTIVATED","device":1,"pull":true},"msg":"logging in..."}
-{"level":30,"time":"2026-07-29T02:34:15.214Z","pid":23040,"hostname":"GIOVAPOLIS-PC","class":"baileys","msg":"handled 0 offline messages/notifications"}
-{"level":30,"time":"2026-07-29T02:34:15.214Z","pid":23040,"hostname":"GIOVAPOLIS-PC","class":"baileys","msg":"Connection is now AwaitingInitialSync, buffering events"}
-{"level":30,"time":"2026-07-29T02:34:15.214Z","pid":23040,"hostname":"GIOVAPOLIS-PC","class":"baileys","msg":"History sync is disabled by config, not waiting for notification. Transitioning to Online."}
-{"level":30,"time":"2026-07-29T02:34:15.222Z","pid":23040,"hostname":"GIOVAPOLIS-PC","class":"baileys","msg":"28 pre-keys found on server"}
-{"level":30,"time":"2026-07-29T02:34:15.284Z","pid":23040,"hostname":"GIOVAPOLIS-PC","class":"baileys","msg":"opened connection to WA"}
-[OK] WhatsApp conectado

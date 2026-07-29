@@ -7,6 +7,7 @@ const { login, authMiddleware, authSocket } = require('./auth')
 const app = express()
 const server = http.createServer(app)
 const io = new Server(server)
+const pedidos = []
 
 app.use(express.json())
 app.use(express.static(path.join(__dirname, '..', 'public')))
@@ -30,6 +31,11 @@ app.get('/', (req, res) => {
 
 io.use(authSocket)
 
+function agregarPedido(data) {
+  pedidos.unshift(data)
+  io.emit('nuevo_pedido', data)
+}
+
 function iniciar(puerto) {
   server.listen(puerto, () => {
     console.log('Dashboard: http://localhost:' + puerto)
@@ -44,9 +50,21 @@ function iniciar(puerto) {
     if (estado.conectado) {
       socket.emit('conn_ready')
     }
+
+    socket.on('obtener_pedidos', () => {
+      socket.emit('pedidos_actuales', pedidos)
+    })
+
+    socket.on('cambiar_estado', ({ id, estado }) => {
+      const p = pedidos.find(ped => ped.id === id)
+      if (p) {
+        p.estado = estado
+        io.emit('pedido_actualizado', p)
+      }
+    })
   })
 
   return io
 }
 
-module.exports = { iniciar }
+module.exports = { iniciar, agregarPedido }

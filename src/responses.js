@@ -1,6 +1,6 @@
 const keywords = [
   {
-    palabras: ['menu', 'menú', 'carta', 'platillos', 'comida', 'comer'],
+    palabras: ['menu', 'menú', 'carta', 'platillos', 'comida', 'comer', 'precio', 'precios', 'cuestan', 'vale'],
     respuesta: [
       '🍕 *PIZZAS*',
       'Personal ................... $89',
@@ -24,7 +24,10 @@ const keywords = [
       'Aros de cebolla ............ $49',
       'Nachos con queso ........... $59',
       '',
-      '_Mandanos tu pedido y lo armamos_ 📦'
+      '——————————',
+      '¿Que se te antoja? Mandanos tu pedido 📦',
+      '',
+      '_Ej: \"2 pizzas familiares y 3 tacos\"_'
     ].join('\n'),
     esPedido: false
   },
@@ -41,87 +44,17 @@ const keywords = [
     esPedido: false
   },
   {
-    palabras: ['ubicacion', 'direccion', 'donde', 'ubicación', 'dirección', 'llegar', 'mapa'],
-    respuesta: [
-      '📍 *UBICACION*',
-      '',
-      'Calle Principal #123, Col. Centro',
-      'Tequixquiac, Estado de Mexico',
-      '',
-      '_A una cuadra del mercado municipal_',
-      '',
-      'Mandanos tu ubicacion y te decimos',
-      'si llegamos a tu zona 🚗'
-    ].join('\n'),
-    esPedido: false
-  },
-  {
-    palabras: ['contacto', 'telefono', 'teléfono', 'llamar', 'numero', 'whatsapp', 'contactar'],
-    respuesta: [
-      '📞 *CONTACTO*',
-      '',
-      'Telefono: 55-1234-5678',
-      'WhatsApp: 55-1234-5678',
-      'Instagram: @comidarica_oficial',
-      '',
-      '_Atencion telefonica:_',
-      '_Lun a Sab 10:00 am - 9:00 pm_'
-    ].join('\n'),
-    esPedido: false
-  },
-  {
-    palabras: ['pago', 'tarjeta', 'efectivo', 'transferencia', 'pagar', 'metodo'],
-    respuesta: [
-      '💳 *FORMAS DE PAGO*',
-      '',
-      'Efectivo',
-      'Tarjeta de credito/debito',
-      'Transferencia BBVA',
-      'Mercado Pago',
-      'PayPal',
-      '',
-      '_Precios con IVA incluido_'
-    ].join('\n'),
-    esPedido: false
-  },
-  {
-    palabras: ['promo', 'promocion', 'promoción', 'oferta', 'descuento', 'especial', 'combo'],
-    respuesta: [
-      '🔥 *PROMOS DEL DIA*',
-      '',
-      '#1 2 pizzas medianas + 2 refrescos .. $199',
-      '#2 5 tacos + papas + refresco ........ $139',
-      '#3 Pizza familiar + 6 tacos + 2 bebidas $259',
-      '',
-      '_Validas hoy o hasta agotar_ ⏳'
-    ].join('\n'),
-    esPedido: false
-  },
-  {
-    palabras: ['tiempo', 'tarda', 'demora', 'entrega', 'llega', 'cuanto'],
-    respuesta: [
-      '⏱ *TIEMPO DE ENTREGA*',
-      '',
-      'Centro ................. 20-30 min',
-      'Norte .................. 30-45 min',
-      'Sur .................... 25-40 min',
-      '',
-      '_Aproximado, puede variar segun demanda_ 🚗'
-    ].join('\n'),
-    esPedido: false
-  },
-  {
     palabras: ['hola', 'buenas', 'buen dia', 'buen día', 'buenas tardes', 'buenas noches', 'que tal', 'buenass'],
     respuesta: null,
     esPedido: false,
     esSaludo: true
   },
   {
-    palabras: ['gracias', 'muchas gracias', 'gracias', 'te agradezco', 'thanks'],
+    palabras: ['gracias', 'muchas gracias', 'te agradezco', 'thanks'],
     respuesta: [
       'A ti! Cuando necesites algo, aca estoy 🙌',
       '',
-      'Buen provecho! 🍕🌮🥤'
+      'Buen provecho! 🍕🌮'
     ].join('\n'),
     esPedido: false
   },
@@ -154,14 +87,11 @@ const palavrasQuery = [
 const defaultResponse = [
   'Hola, soy el asistente de *Comida Rica* 🍕🌮',
   '',
-  'Preguntame:',
+  'Preguntame por:',
   '🍕 menu',
   '🕐 horario',
-  '📍 ubicacion',
-  '🔥 promos',
-  '💳 formas de pago',
   '',
-  'O hace tu pedido directamente 📦',
+  'O hace tu pedido directo 📦',
   '',
   '_Decime que se te antoja_'
 ].join('\n')
@@ -175,7 +105,7 @@ function procesar(texto) {
       if (item.esSaludo) {
         return { respuesta: null, esPedido: false, esSaludo: true }
       }
-      return { respuesta: item.respuesta, esPedido: false }
+      return { respuesta: item.respuesta, esPedido: false, esKeyword: true }
     }
   }
 

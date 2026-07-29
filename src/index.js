@@ -1,6 +1,6 @@
 require('dotenv').config()
 
-const server = require('./server')
+const { iniciar, agregarPedido } = require('./server')
 const whatsapp = require('./whatsapp')
 const responses = require('./responses')
 const ordenes = require('./ordenes')
@@ -13,7 +13,7 @@ function delay(ms) {
 }
 
 async function main() {
-  const io = server.iniciar(puerto)
+  const io = iniciar(puerto)
   const sock = await whatsapp.iniciar(io)
 
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
@@ -29,7 +29,7 @@ async function main() {
 
       if (msg.message.locationMessage) {
         const { degreesLatitude, degreesLongitude } = msg.message.locationMessage
-        console.log('[GPS] Ubicacion recibida de ' + nombre + ': ' + degreesLatitude + ', ' + degreesLongitude)
+        console.log('[GPS] Ubicacion de ' + nombre + ': ' + degreesLatitude + ', ' + degreesLongitude)
 
         const sesion = ordenes.obtenerSesion(telefono)
         if (sesion) {
@@ -54,23 +54,6 @@ async function main() {
 
       console.log('[MSG] ' + nombre + ': "' + texto + '"')
 
-      if (!contactosSaludados.has(telefono)) {
-        contactosSaludados.add(telefono)
-        const saludo = [
-          'Hola ' + nombre + '! Bienvenido a *Comida Rica* 🍕🌮',
-          '',
-          'Soy el asistente virtual, preguntame por:',
-          '- menu, horario, ubicacion, promos',
-          '',
-          'O hace tu pedido directo!',
-          '',
-          '¿En que puedo ayudarte?'
-        ].join('\n')
-        await delay(500)
-        await sock.sendMessage(remitente, { text: saludo })
-        console.log('[OK] Bienvenida enviada a ' + nombre)
-      }
-
       const sesion = ordenes.obtenerSesion(telefono)
 
       if (sesion) {
@@ -84,20 +67,21 @@ async function main() {
             console.error('[ERR] ' + err.message)
           }
 
-          if (result.finalizado && result.datosPedido) {
+            if (result.finalizado && result.datosPedido) {
             const id = 'ped_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)
             const datos = result.datosPedido
             let mensajeCompleto = 'Pedido: ' + datos.detalles + '\nBebida: ' + datos.bebidas
             if (datos.ubicacion) {
               mensajeCompleto += '\nUbicacion: ' + (datos.ubicacion.direccion || (datos.ubicacion.lat + ', ' + datos.ubicacion.lng))
             }
-            io.emit('nuevo_pedido', {
+            agregarPedido({
               id: id,
               nombre: nombre,
               telefono: telefono,
               mensaje: mensajeCompleto,
               hora: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
-              ubicacion: datos.ubicacion
+              ubicacion: datos.ubicacion,
+              estado: 'nuevo'
             })
             console.log('[DASH] Pedido completo')
           }
@@ -106,6 +90,26 @@ async function main() {
       }
 
       const result = responses.procesar(texto)
+
+      if (!contactosSaludados.has(telefono)) {
+        contactosSaludados.add(telefono)
+        if (!result.esKeyword) {
+          const saludo = [
+            'Hola ' + nombre + '! Bienvenido a *Comida Rica* 🍕🌮',
+            '',
+            'Preguntame por:',
+            '- menu, horario',
+            '',
+            'O hace tu pedido directo! 📦',
+            '',
+            '¿En que puedo ayudarte?'
+          ].join('\n')
+          await delay(500)
+          await sock.sendMessage(remitente, { text: saludo })
+          console.log('[OK] Bienvenida a ' + nombre)
+          continue
+        }
+      }
 
       if (result.esSaludo) {
         continue
