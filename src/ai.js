@@ -1,7 +1,8 @@
 const AI_PROVIDER = process.env.AI_PROVIDER || 'openrouter'
 const AI_API_KEY = process.env.AI_API_KEY
-const AI_MODEL = process.env.AI_MODEL || 'openrouter/free'
 const AI_API_URL = process.env.AI_API_URL || 'https://openrouter.ai/api/v1/chat/completions'
+const AI_MODELS = (process.env.AI_MODELS || process.env.AI_MODEL || 'openrouter/free')
+  .split(',').map(m => m.trim()).filter(Boolean)
 
 async function generar(sistema, mensaje) {
   if (AI_PROVIDER === 'openrouter' || AI_PROVIDER === 'openai') {
@@ -23,7 +24,7 @@ async function generarOpenAI(sistema, mensaje) {
 
   try {
     const body = {
-      model: AI_MODEL,
+      ...(AI_MODELS.length > 1 ? { models: AI_MODELS } : { model: AI_MODELS[0] }),
       messages: [
         { role: 'system', content: sistema },
         { role: 'user', content: mensaje }
@@ -65,7 +66,7 @@ async function generarGemini(sistema, mensaje) {
   }
 
   try {
-    const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + AI_MODEL + ':generateContent?key=' + AI_API_KEY
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + AI_MODELS[0] + ':generateContent?key=' + AI_API_KEY
     const body = {
       system_instruction: { parts: [{ text: sistema }] },
       contents: [{ role: 'user', parts: [{ text: mensaje }] }],
