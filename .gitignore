@@ -1,6 +1,7 @@
 node_modules/
 auth/
 data/
+secrets/
 .env
 *.db
 qr.png

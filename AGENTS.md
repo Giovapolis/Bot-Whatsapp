@@ -5,7 +5,7 @@
 - baileys (WhatsApp WebSocket)
 - Express + Socket.IO (Dashboard)
 - SQLite (dev) / PostgreSQL (prod Docker)
-- Google Gemini / OpenAI / OpenRouter (IA segun AI_PROVIDER)
+- Google Vertex AI / OpenAI / OpenRouter (IA segun AI_PROVIDER)
 
 ## Proyecto
 Bot de pedidos para restaurante "Comida Rica": responde automaticamente por WhatsApp con IA, flujo interactivo de pedido con confirmacion y ubicacion GPS. Dashboard web en tiempo real con login.
@@ -44,13 +44,20 @@ AI_MODEL=mistralai/mistral-7b-instruct:free
 # AI_API_KEY=sk-...
 # AI_MODEL=gpt-4o-mini
 # AI_API_URL=https://api.openai.com/v1/chat/completions
+
+# Para Google Vertex AI (produccion):
+AI_PROVIDER=gemini-vertex
+GEMINI_SA_FILE=/app/secrets/gemini-sa.json
+GEMINI_PROJECT=gen-lang-client-0689613649
+GEMINI_REGION=us-central1
+GEMINI_MODELS=gemini-flash-latest,gemini-2.5-flash
 ```
 
 ## Estructura src/
 - `index.js` — Orquestador (messages.upsert, locationMessage)
 - `whatsapp.js` — Conexion Baileys + QR + estado global
 - `responses.js` — Procesa mensajes via IA, detecta pedidos
-- `ai.js` — Cliente generico de IA (OpenRouter, OpenAI, Gemini)
+- `ai.js` — Cliente generico de IA (Vertex AI, OpenRouter, OpenAI, Gemini)
 - `negocio.js` — Datos del restaurante (menu, horario, reglas)
 - `ordenes.js` — Maquina de estados del flujo de pedido
 - `server.js` — Express + Socket.IO + login API + persistencia PostgreSQL
@@ -70,3 +77,9 @@ export DB_PASSWORD=segura
 export AI_API_KEY=sk-or-v1-...
 docker compose up -d
 ```
+
+## Cambio rapido de proveedor de IA
+1. Editar `.env` en el servidor
+2. Cambiar `AI_PROVIDER` al proveedor deseado (openrouter/openai/gemini/gemini-vertex)
+3. Comentar/descomentar las variables correspondientes
+4. `docker compose up -d` (rebuild si se agrego dependencia)

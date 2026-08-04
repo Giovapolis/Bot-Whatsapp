@@ -26,9 +26,14 @@ services:
       CLEANUP_DAYS: "30"
       AI_PROVIDER: ${AI_PROVIDER}
       AI_API_KEY: ${AI_API_KEY}
-      AI_MODEL: ${AI_MODEL}
+      AI_MODELS: ${AI_MODELS}
+      GEMINI_PROJECT: ${GEMINI_PROJECT}
+      GEMINI_REGION: ${GEMINI_REGION}
+      GEMINI_SA_FILE: ${GEMINI_SA_FILE}
+      GEMINI_MODELS: ${GEMINI_MODELS}
     volumes:
       - auth_data:/app/auth
+      - ./secrets:/app/secrets:ro
     depends_on:
       db:
         condition: service_healthy
