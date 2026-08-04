@@ -1,4 +1,4 @@
-const negocio = require('./negocio')
+const { negocio } = require('./negocio')
 
 const sesiones = new Map()
 

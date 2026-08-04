@@ -1,11 +1,11 @@
 const ai = require('./ai')
-const negocio = require('./negocio')
+const { negocio, formatearMenu, obtenerSystemPrompt } = require('./negocio')
 
 let systemPrompt = ''
 
 function obtenerPrompt() {
   if (!systemPrompt) {
-    systemPrompt = negocio.obtenerSystemPrompt()
+    systemPrompt = obtenerSystemPrompt()
   }
   return systemPrompt
 }
@@ -33,7 +33,7 @@ async function armando(articulos, texto) {
     'Estas armando un pedido en una conversacion por WhatsApp.',
     '',
     'MENU (usa SOLO estos productos y precios, NO inventes):',
-    negocio.formatearMenu(),
+    formatearMenu(),
     '',
     formatearCarrito(articulos),
     '',
