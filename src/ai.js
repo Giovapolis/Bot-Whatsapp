@@ -17,9 +17,9 @@ async function getVertexToken() {
     const { GoogleAuth } = require('google-auth-library')
     vertexAuth = new GoogleAuth({ keyFile: GEMINI_SA_FILE, scopes: ['https://www.googleapis.com/auth/cloud-platform'] })
   }
-  const client = await vertexAuth.getIdTokenClient('https://cloud-platform.googleapis.com/')
-  const token = await client.getIdToken()
-  return token
+  const client = await vertexAuth.getClient()
+  const token = await client.getAccessToken()
+  return token.token
 }
 
 async function generar(sistema, mensaje) {
