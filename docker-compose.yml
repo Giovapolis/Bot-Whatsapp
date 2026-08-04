@@ -25,12 +25,12 @@ services:
       DASHBOARD_PASS: ${DASHBOARD_PASS}
       CLEANUP_DAYS: "30"
       AI_PROVIDER: ${AI_PROVIDER}
-      AI_API_KEY: ${AI_API_KEY}
-      AI_MODELS: ${AI_MODELS}
-      GEMINI_PROJECT: ${GEMINI_PROJECT}
-      GEMINI_REGION: ${GEMINI_REGION}
-      GEMINI_SA_FILE: ${GEMINI_SA_FILE}
-      GEMINI_MODELS: ${GEMINI_MODELS}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODELS: ${AI_MODELS:-openrouter/free}
+      GEMINI_PROJECT: ${GEMINI_PROJECT:-}
+      GEMINI_REGION: ${GEMINI_REGION:-us-central1}
+      GEMINI_SA_FILE: ${GEMINI_SA_FILE:-/app/secrets/gemini-sa.json}
+      GEMINI_MODELS: ${GEMINI_MODELS:-gemini-flash-latest,gemini-2.5-flash}
     volumes:
       - auth_data:/app/auth
       - ./secrets:/app/secrets:ro
