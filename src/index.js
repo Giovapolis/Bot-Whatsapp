@@ -11,6 +11,40 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+async function procesarArmado(telefono, texto) {
+  const t = texto.toLowerCase().trim()
+  if (['cancelar', 'cancel', 'salir', 'despues', 'nunca', 'no quiero', 'mejor no'].includes(t)) {
+    ordenes.limpiar(telefono)
+    return 'Sin problema, cuando quieras pedir solo decime. 🙌'
+  }
+
+  const sesion = ordenes.obtenerSesion(telefono)
+  if (!sesion) return null
+
+  const r = await responses.armando(sesion.articulos, texto)
+
+  if (r.agregar && r.agregar.length) {
+    ordenes.agregarArticulos(telefono, r.agregar)
+  }
+
+  if (r.quitar && r.quitar.length) {
+    ordenes.quitarArticulos(telefono, r.quitar)
+  }
+
+  const sesionActualizada = ordenes.obtenerSesion(telefono)
+  const ticketActual = ordenes.ticket(sesionActualizada)
+
+  if (r.finalizar) {
+    const pideUbic = ordenes.finalizarArmado(telefono)
+    const cierre = ordenes.resumenConTotal(telefono, r.resumen)
+    return [cierre, '', ticketActual, '', pideUbic].join('\n')
+  }
+
+  const respuesta = ordenes.resumenConTotal(telefono, r.resumen)
+  const base = respuesta || 'Voy anotando. Decime que mas queres o "*la cuenta*" cuando termines.'
+  return base + '\n\n' + ticketActual
+}
+
 async function main() {
   const io = await iniciar(puerto)
   const sock = await whatsapp.iniciar(io)
@@ -56,30 +90,39 @@ async function main() {
       const sesion = ordenes.obtenerSesion(telefono)
 
       if (sesion) {
-        const result = ordenes.procesar(telefono, texto)
-        if (result && result.respuesta) {
+        let respuesta = null
+        let finalizado = false
+        let datosPedido = null
+        let estado = sesion.estado
+
+        if (sesion.estado === 'ARMANDO_PEDIDO') {
+          respuesta = await procesarArmado(telefono, texto)
+        } else {
+          const result = ordenes.procesar(telefono, texto)
+          respuesta = result.respuesta
+          finalizado = result.finalizado
+          datosPedido = result.datosPedido
+          estado = result.estado
+        }
+
+        if (respuesta) {
           await delay(800 + Math.random() * 1200)
           try {
-            await sock.sendMessage(remitente, { text: result.respuesta })
-            console.log('[OK] paso=' + (result.estado || '?') + ' finalizado=' + result.finalizado)
+            await sock.sendMessage(remitente, { text: respuesta })
+            console.log('[OK] paso=' + (estado || '?') + ' finalizado=' + finalizado)
           } catch (err) {
             console.error('[ERR] ' + err.message)
           }
 
-          if (result.finalizado && result.datosPedido) {
+          if (finalizado && datosPedido) {
             const id = 'ped_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)
-            const datos = result.datosPedido
-            let mensajeCompleto = 'Pedido: ' + datos.detalles + '\nBebida: ' + datos.bebidas
-            if (datos.ubicacion) {
-              mensajeCompleto += '\nUbicacion: ' + (datos.ubicacion.direccion || (datos.ubicacion.lat + ', ' + datos.ubicacion.lng))
-            }
             agregarPedido({
               id: id,
               nombre: nombre,
               telefono: telefono,
-              mensaje: mensajeCompleto,
+              mensaje: datosPedido.detalles,
               hora: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
-              ubicacion: datos.ubicacion,
+              ubicacion: datosPedido.ubicacion,
               estado: 'nuevo'
             })
             console.log('[DASH] Pedido completo')
@@ -91,7 +134,8 @@ async function main() {
       const result = await responses.procesar(texto)
 
       if (result.esPedido) {
-        const primerMsg = ordenes.iniciar(telefono, nombre, texto)
+        ordenes.iniciar(telefono, nombre)
+        const primerMsg = await procesarArmado(telefono, texto)
         await delay(800 + Math.random() * 1200)
         try {
           await sock.sendMessage(remitente, { text: primerMsg })

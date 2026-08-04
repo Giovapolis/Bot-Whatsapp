@@ -23,21 +23,48 @@ async function getVertexToken() {
 }
 
 async function generar(sistema, mensaje) {
+  return generarTexto(sistema, mensaje, false)
+}
+
+async function generarJSON(sistema, mensaje) {
+  return generarTexto(sistema, mensaje, true)
+}
+
+async function generarTexto(sistema, mensaje, jsonMode) {
   if (AI_PROVIDER === 'openrouter' || AI_PROVIDER === 'openai') {
-    return generarOpenAI(sistema, mensaje)
+    const texto = await generarOpenAI(sistema, mensaje, jsonMode)
+    return jsonMode ? parseJSON(texto) : texto
   }
   if (AI_PROVIDER === 'gemini') {
-    return generarGemini(sistema, mensaje)
+    const texto = await generarGemini(sistema, mensaje, jsonMode)
+    return jsonMode ? parseJSON(texto) : texto
   }
   if (AI_PROVIDER === 'gemini-vertex') {
-    return generarGeminiVertex(sistema, mensaje)
+    const texto = await generarGeminiVertex(sistema, mensaje, jsonMode)
+    return jsonMode ? parseJSON(texto) : texto
   }
 
   console.error('[ERR] AI_PROVIDER "' + AI_PROVIDER + '" no soportado')
   return 'Disculpa, no puedo responder en este momento.'
 }
 
-async function generarOpenAI(sistema, mensaje) {
+function parseJSON(texto) {
+  if (!texto) return null
+  const inicio = texto.indexOf('{')
+  const fin = texto.lastIndexOf('}')
+  if (inicio === -1 || fin === -1 || fin <= inicio) {
+    console.error('[ERR] JSON invalido de la IA: ' + texto.slice(0, 120))
+    return null
+  }
+  try {
+    return JSON.parse(texto.slice(inicio, fin + 1))
+  } catch (err) {
+    console.error('[ERR] JSON invalido de la IA: ' + err.message)
+    return null
+  }
+}
+
+async function generarOpenAI(sistema, mensaje, jsonMode) {
   if (!AI_API_KEY) {
     console.error('[ERR] Falta AI_API_KEY en .env')
     return 'Disculpa, no puedo responder en este momento.'
@@ -45,12 +72,13 @@ async function generarOpenAI(sistema, mensaje) {
 
   const body = {
     ...(AI_MODELS.length > 1 ? { models: AI_MODELS } : { model: AI_MODELS[0] }),
+    ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
     messages: [
       { role: 'system', content: sistema },
       { role: 'user', content: mensaje }
     ],
     temperature: 0.7,
-    max_tokens: 500
+    max_tokens: 700
   }
 
   const headers = {
@@ -80,7 +108,7 @@ async function generarOpenAI(sistema, mensaje) {
   }
 }
 
-async function generarGemini(sistema, mensaje) {
+async function generarGemini(sistema, mensaje, jsonMode) {
   if (!AI_API_KEY) {
     console.error('[ERR] Falta AI_API_KEY en .env')
     return 'Disculpa, no puedo responder en este momento.'
@@ -90,7 +118,11 @@ async function generarGemini(sistema, mensaje) {
   const body = {
     system_instruction: { parts: [{ text: sistema }] },
     contents: [{ role: 'user', parts: [{ text: mensaje }] }],
-    generationConfig: { temperature: 0.7, maxOutputTokens: 500 }
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 700,
+      ...(jsonMode ? { responseMimeType: 'application/json' } : {})
+    }
   }
 
   try {
@@ -115,7 +147,7 @@ async function generarGemini(sistema, mensaje) {
   }
 }
 
-async function generarGeminiVertex(sistema, mensaje) {
+async function generarGeminiVertex(sistema, mensaje, jsonMode) {
   if (!GEMINI_SA_FILE || !GEMINI_PROJECT) {
     console.error('[ERR] Falta GEMINI_SA_FILE o GEMINI_PROJECT en .env')
     return 'Disculpa, no puedo responder en este momento.'
@@ -138,7 +170,11 @@ async function generarGeminiVertex(sistema, mensaje) {
     const body = {
       contents: contents,
       systemInstruction: { parts: [{ text: sistema }] },
-      generationConfig: { temperature: 0.7, maxOutputTokens: 500 }
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 700,
+        ...(jsonMode ? { responseMimeType: 'application/json' } : {})
+      }
     }
 
     try {
@@ -167,4 +203,4 @@ async function generarGeminiVertex(sistema, mensaje) {
   return 'Disculpa, todos mis canales de IA estan ocupados. Intenta de nuevo mas tarde.'
 }
 
-module.exports = { generar }
+module.exports = { generar, generarJSON }
