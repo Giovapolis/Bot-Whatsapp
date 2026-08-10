@@ -8,12 +8,23 @@ const negocio = {
     costillas: [
       { nombre: "Costillas BBQ", precio: 95 },
     ],
-    acompañamientos: [
-      { nombre: "Papas a la francesa", precio: 45, nota: "Opcional: catsup, crema, salsa picante, queso amarillo" },
+    salchipulpos: [
       { nombre: "Salchipulpos", precio: 45 },
     ],
-    bebidas: [
-      { nombre: "Refrescos", precio: 25 },
+    acompañamientos: [
+      { nombre: "Papas a la francesa", precio: 45, nota: "Opcional: catsup, crema, salsa picante, queso amarillo" },
+    ],
+    refrescos: [
+      { nombre: "Tutifruti", precio: 25 },
+      { nombre: "Limón", precio: 25 },
+      { nombre: "Uva", precio: 25 },
+    ],
+    jugos: [
+      { nombre: "Mango", precio: 25 },
+      { nombre: "Guayaba", precio: 25 },
+    ],
+    agua: [
+      { nombre: "Natural", precio: 25 },
     ],
   },
   salsas: [
@@ -41,8 +52,11 @@ function formatearMenu() {
   let txt = "MENÚ:\n";
   txt += "ALITAS:\n" + m.alitas.map((p) => "  " + p.nombre + " - $" + p.precio).join("\n") + "\n";
   txt += "COSTILLAS:\n" + m.costillas.map((c) => "  " + c.nombre + " - $" + c.precio).join("\n") + "\n";
+  txt += "SALCHIPULPOS:\n" + m.salchipulpos.map((s) => "  " + s.nombre + " - $" + s.precio).join("\n") + "\n";
   txt += "ACOMPAÑAMIENTOS:\n" + m.acompañamientos.map((a) => "  " + a.nombre + " - $" + a.precio).join("\n") + "\n";
-  txt += "REFRESCOS:\n" + m.bebidas.map((b) => "  " + b.nombre + " - $" + b.precio).join("\n") + "\n";
+  txt += "REFRESCOS ($" + m.refrescos[0].precio + "):\n  " + m.refrescos.map((r) => r.nombre).join(" • ") + "\n";
+  txt += "JUGOS ($" + m.jugos[0].precio + "):\n  " + m.jugos.map((j) => j.nombre).join(" • ") + "\n";
+  txt += "AGUA ($" + m.agua[0].precio + "):\n  " + m.agua.map((a) => a.nombre).join(" • ") + "\n";
   txt += "SALSAS (incluidas para alitas y costillas):\n  " + negocio.salsas.join(" • ") + "\n";
   return txt;
 }

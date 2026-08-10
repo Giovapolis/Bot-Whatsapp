@@ -32,11 +32,20 @@ tipo: 'Restaurante de comida mexicana',
 menu: {
   alitas: [ { nombre: 'Alitas', precio: 85 } ],
   costillas: [ { nombre: 'Costillas BBQ', precio: 95 } ],
+  salchipulpos: [ { nombre: 'Salchipulpos', precio: 45 } ],
   acompañamientos: [
-    { nombre: 'Papas a la francesa', precio: 45, nota: 'Opcional: catsup, crema, salsa picante, queso amarillo' },
-    { nombre: 'Salchipulpos', precio: 45 }
+    { nombre: 'Papas a la francesa', precio: 45, nota: 'Opcional: catsup, crema, salsa picante, queso amarillo' }
   ],
-  bebidas: [ { nombre: 'Refrescos', precio: 25 } ],
+  refrescos: [
+    { nombre: 'Tutifruti', precio: 25 },
+    { nombre: 'Limón', precio: 25 },
+    { nombre: 'Uva', precio: 25 }
+  ],
+  jugos: [
+    { nombre: 'Mango', precio: 25 },
+    { nombre: 'Guayaba', precio: 25 }
+  ],
+  agua: [ { nombre: 'Natural', precio: 25 } ],
 },
 salsas: ['BBQ', 'Mango Habanero', 'Tamarindo', 'Ranch', 'Fresa Tajín', 'Chipotle Frutos Rojos'],
 ```
@@ -46,8 +55,17 @@ Ejemplo: agregar "Boneless" a acompañamientos
 ```js
 acompañamientos: [
   { nombre: 'Papas a la francesa', precio: 45, nota: 'Opcional: catsup, crema, salsa picante, queso amarillo' },
-  { nombre: 'Salchipulpos', precio: 45 },
   { nombre: 'Boneless', precio: 75 }  // nuevo
+],
+```
+
+Ejemplo: agregar un sabor a refrescos
+```js
+refrescos: [
+  { nombre: 'Tutifruti', precio: 25 },
+  { nombre: 'Limón', precio: 25 },
+  { nombre: 'Uva', precio: 25 },
+  { nombre: 'Manzana', precio: 25 }  // nuevo
 ],
 ```
 
