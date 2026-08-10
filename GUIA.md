@@ -1,4 +1,4 @@
-# Guia de Mantenimiento — Bot WhatsApp "Comida Rica"
+# Guia de Mantenimiento — Bot WhatsApp "Wings Doble R"
 
 ---
 
@@ -16,55 +16,54 @@ tipo: 'Restaurante de comida mexicana',
 ```
 
 ### dashboard.html (4 lugares)
-- Linea 6: `<title>Comida Rica — Dashboard</title>`
-- Linea 190: `<div class="login-title">Comida Rica</div>`
-- Linea 211: `<h2>Comida Rica</h2>`
-- Emoji logo: Linea 189 y Linea 210 (cambiar `🍽️` por el emoji deseado)
+- Linea 6: `<title>Wings Doble R — Dashboard</title>`
+- Linea 190: `<div class="login-title">Wings Doble R</div>`
+- Linea 211: `<h2>Wings Doble R</h2>`
+- Emoji logo: Linea 189 y Linea 210 (cambiar `🍗` por el emoji deseado)
 
 ---
 
-## 2. Cambiar el menu
+## 2. Cambiar el menú
 
-### Archivo: `src/negocio.js` (lineas 4-27)
+### Archivo: `src/negocio.js`
 
-### Estructura de cada item
+### Estructura actual
 ```js
-{ nombre: 'Nombre del item', precio: 0 }
+menu: {
+  alitas: [ { nombre: 'Alitas', precio: 85 } ],
+  costillas: [ { nombre: 'Costillas BBQ', precio: 95 } ],
+  acompañamientos: [
+    { nombre: 'Papas a la francesa', precio: 45, nota: 'Opcional: catsup, crema, salsa picante, queso amarillo' },
+    { nombre: 'Salchipulpos', precio: 45 }
+  ],
+  bebidas: [ { nombre: 'Refrescos', precio: 25 } ],
+},
+salsas: ['BBQ', 'Mango Habanero', 'Tamarindo', 'Ranch', 'Fresa Tajín', 'Chipotle Frutos Rojos'],
 ```
 
 ### Agregar un producto
-Ejemplo: agregar "Boneless" a tacos
+Ejemplo: agregar "Boneless" a acompañamientos
 ```js
-tacos: [
-  { nombre: '3 de suadero/pastor', precio: 45 },
-  { nombre: '5 orden', precio: 69 },
-  { nombre: 'Gigante', precio: 55 },
+acompañamientos: [
+  { nombre: 'Papas a la francesa', precio: 45, nota: 'Opcional: catsup, crema, salsa picante, queso amarillo' },
+  { nombre: 'Salchipulpos', precio: 45 },
   { nombre: 'Boneless', precio: 75 }  // nuevo
 ],
 ```
 
 ### Quitar un producto
-Eliminar la linea del objeto. Ejemplo: quitar "Gigante"
-```js
-tacos: [
-  { nombre: '3 de suadero/pastor', precio: 45 },
-  { nombre: '5 orden', precio: 69 },
-],
-```
+Eliminar la linea del objeto.
 
 ### Cambiar precios
-Modificar el valor de `precio:`. Ejemplo: subir "Mediana" de $120 a $135
-```js
-{ nombre: 'Mediana', precio: 135 },
-```
+Modificar el valor de `precio:`.
 
-### Agregar una categoria nueva
+### Agregar una categoría nueva
 1. Agregar array en `negocio.menu`
 2. Actualizar `formatearMenu()` para incluirla
 
 ```js
 menu: {
-  // categorias existentes
+  // categorías existentes
   postres: [
     { nombre: 'Flan', precio: 45 },
     { nombre: 'Tres leches', precio: 55 }
@@ -77,20 +76,24 @@ Y en `formatearMenu()` agregar:
 txt += 'POSTRES:\n' + m.postres.map(p => '  ' + p.nombre + ' - $' + p.precio).join('\n') + '\n'
 ```
 
-### Quitar una categoria
+### Agregar una salsa
+```js
+salsas: ['BBQ', 'Mango Habanero', 'Tamarindo', 'Ranch', 'Fresa Tajín', 'Chipotle Frutos Rojos', 'Nueva Salsa'],
+```
+
+### Quitar una categoría
 1. Eliminar el array de `negocio.menu`
-2. Eliminar la linea correspondiente en `formatearMenu()`
+2. Eliminar la línea correspondiente en `formatearMenu()`
 
 ---
 
 ## 3. Cambiar horario
 
-### Archivo: `src/negocio.js` (lineas 28-32)
+### Archivo: `src/negocio.js`
 ```js
 horario: {
-  semana: '11:00 am - 11:00 pm',    // Lun-Vie
-  finSemana: '10:00 am - 12:00 am', // Sab-Dom
-  nota: 'Cocina cierra 30 min antes'
+  nota: 'Los horarios pueden variar en días festivos o por situaciones especiales.',
+  finSemana: '06:00 pm - 11:30 pm',
 },
 ```
 
@@ -98,10 +101,12 @@ horario: {
 
 ## 4. Cambiar reglas del negocio
 
-### Archivo: `src/negocio.js` (lineas 33-38)
+### Archivo: `src/negocio.js`
 ```js
 reglas: [
+  'No hay descuentos ni promociones activas actualmente',
   'Solo se acepta efectivo contra entrega',
+  'No se hacen envíos fuera de la zona de cobertura',
   'Tiempo estimado de entrega: 30-45 min',
 ],
 ```
