@@ -8,7 +8,7 @@ function normalizar(s) {
 
 function buscarItem(nombre) {
   const n = normalizar(nombre)
-  const categorias = ['pizzas', 'tacos', 'bebidas', 'complementos']
+  const categorias = Object.keys(negocio.menu)
   for (const cat of categorias) {
     for (const item of negocio.menu[cat]) {
       if (normalizar(item.nombre) === n) return item
