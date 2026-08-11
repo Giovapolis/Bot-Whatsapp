@@ -53,7 +53,11 @@ function limpiar(telefono) {
 
 function formatearCarrito(articulos) {
   if (!articulos || articulos.length === 0) return 'Carrito vacio.'
-  return articulos.map(i => '• ' + i.cantidad + 'x ' + i.nombre + ' — $' + (i.precio * i.cantidad)).join('\n')
+  return articulos.map(i => {
+    let linea = '• ' + i.cantidad + 'x ' + i.nombre + ' — $' + (i.precio * i.cantidad)
+    if (i.detalle) linea += '\n    ' + i.detalle
+    return linea
+  }).join('\n')
 }
 
 function calcularTotal(articulos) {
@@ -74,11 +78,11 @@ function agregarArticulos(telefono, items) {
       continue
     }
     const cantidad = Math.max(1, parseInt(item.cantidad, 10) || 1)
-    const existente = sesion.articulos.find(a => a.nombre === ref.nombre)
+    const existente = sesion.articulos.find(a => a.nombre === ref.nombre && a.detalle === (item.detalle || null))
     if (existente) {
       existente.cantidad += cantidad
     } else {
-      sesion.articulos.push({ nombre: ref.nombre, cantidad: cantidad, precio: ref.precio })
+      sesion.articulos.push({ nombre: ref.nombre, cantidad: cantidad, precio: ref.precio, detalle: item.detalle || null })
     }
     validos++
   }
@@ -130,6 +134,7 @@ function ticket(sesion) {
     for (const a of sesion.articulos) {
       const sub = a.precio * a.cantidad
       lineas.push('  ' + a.cantidad + 'x ' + a.nombre)
+      if (a.detalle) lineas.push('    ' + a.detalle)
       lineas.push('    $' + sub)
     }
     lineas.push('')
