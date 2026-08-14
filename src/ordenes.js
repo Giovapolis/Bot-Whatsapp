@@ -78,9 +78,12 @@ function agregarArticulos(telefono, items) {
       continue
     }
     const cantidad = Math.max(1, parseInt(item.cantidad, 10) || 1)
-    const existente = sesion.articulos.find(a => a.nombre === ref.nombre && a.detalle === (item.detalle || null))
+    const existente = sesion.articulos.find(a => a.nombre === ref.nombre)
     if (existente) {
       existente.cantidad += cantidad
+      if (item.detalle && (!existente.detalle || existente.detalle !== item.detalle)) {
+        existente.detalle = item.detalle
+      }
     } else {
       sesion.articulos.push({ nombre: ref.nombre, cantidad: cantidad, precio: ref.precio, detalle: item.detalle || null })
     }

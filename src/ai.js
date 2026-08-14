@@ -57,7 +57,9 @@ function parseJSON(texto) {
     return null
   }
   try {
-    return JSON.parse(texto.slice(inicio, fin + 1))
+    let jsonStr = texto.slice(inicio, fin + 1)
+    jsonStr = jsonStr.replace(/,\s*([}\]])/g, '$1')
+    return JSON.parse(jsonStr)
   } catch (err) {
     console.error('[ERR] JSON invalido de la IA: ' + err.message)
     return null
