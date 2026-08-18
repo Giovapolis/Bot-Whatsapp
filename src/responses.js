@@ -31,6 +31,27 @@ function formatearCarrito(articulos) {
   return 'CARRITO ACTUAL:\n- ' + lineas.join('\n- ')
 }
 
+function normalizarItems(input) {
+  if (!input) return []
+  if (Array.isArray(input)) {
+    return input.map(item => {
+      if (typeof item === 'string') return { nombre: item, cantidad: 1, detalle: null }
+      if (typeof item === 'object' && item !== null) {
+        const nombre = item.nombre || item.name || item.item || item.product || item.plato || null
+        if (!nombre) return null
+        return { nombre: nombre, cantidad: parseInt(item.cantidad || item.qty || item.quantity, 10) || 1, detalle: item.detalle || item.detail || item.note || null }
+      }
+      return null
+    }).filter(Boolean)
+  }
+  if (typeof input === 'string') return [{ nombre: input, cantidad: 1, detalle: null }]
+  if (typeof input === 'object') {
+    const nombre = input.nombre || input.name || input.item || input.product || input.plato || null
+    if (nombre) return [{ nombre: nombre, cantidad: parseInt(input.cantidad || input.qty, 10) || 1, detalle: input.detalle || null }]
+  }
+  return []
+}
+
 async function armando(articulos, texto) {
   const prompt = [
     'Sos el mesero de "' + negocio.nombre + '". Estás armando un pedido por WhatsApp.',
@@ -92,12 +113,17 @@ async function armando(articulos, texto) {
   console.log('[IA JSON]', JSON.stringify(raw))
 
   if (!raw || typeof raw !== 'object') {
+    console.log('[IA] raw no es objeto:', typeof raw)
     return { agregar: [], quitar: [], finalizar: false, resumen: null }
   }
 
+  const agregar = normalizarItems(raw.agregar)
+  const quitar = normalizarItems(raw.quitar)
+  console.log('[IA] agregar normalizado:', JSON.stringify(agregar), 'quitar:', JSON.stringify(quitar))
+
   return {
-    agregar: Array.isArray(raw.agregar) ? raw.agregar : [],
-    quitar: Array.isArray(raw.quitar) ? raw.quitar : [],
+    agregar: agregar,
+    quitar: quitar,
     finalizar: !!raw.finalizar,
     resumen: typeof raw.resumen === 'string' && raw.resumen.trim() ? raw.resumen.trim() : null
   }

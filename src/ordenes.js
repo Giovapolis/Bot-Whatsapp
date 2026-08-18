@@ -66,7 +66,11 @@ function calcularTotal(articulos) {
 
 function agregarArticulos(telefono, items) {
   const sesion = sesiones.get(telefono)
-  if (!sesion) return { validos: 0, invalidos: [] }
+  if (!sesion) {
+    console.log('[ORDENES] agregarArticulos: sesion null para', telefono)
+    return { validos: 0, invalidos: [] }
+  }
+  console.log('[ORDENES] agregarArticulos:', telefono, 'items:', JSON.stringify(items))
 
   const invalidos = []
   let validos = 0
@@ -94,6 +98,7 @@ function agregarArticulos(telefono, items) {
   }
 
   sesion.total = calcularTotal(sesion.articulos)
+  console.log('[ORDENES] resultado:', validos, 'validos,', invalidos.length, 'invalidos. Total:', sesion.total, 'Articulos:', sesion.articulos.length)
   return { validos: validos, invalidos: invalidos }
 }
 
@@ -204,7 +209,11 @@ function guardarUbicacion(telefono, lat, lng) {
 
 function finalizarPedido(telefono, lat, lng) {
   const sesion = sesiones.get(telefono)
-  if (!sesion || !sesion.articulos.length) return null
+  if (!sesion) {
+    console.log('[ORDENES] finalizarPedido: sesion null para', telefono)
+    return null
+  }
+  console.log('[ORDENES] finalizarPedido:', telefono, 'articulos:', sesion.articulos.length, 'total:', sesion.total)
 
   sesion.ubicacion = { lat: lat, lng: lng, direccion: lat + ', ' + lng }
   sesion.estado = 'CONFIRMADO'

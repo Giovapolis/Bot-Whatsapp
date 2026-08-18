@@ -58,9 +58,10 @@ async function main() {
 
         if (msg.message.locationMessage) {
           const { degreesLatitude, degreesLongitude } = msg.message.locationMessage
-          console.log('[GPS] Ubicacion de ' + nombre + ': ' + degreesLatitude + ', ' + degreesLongitude)
+          console.log('[GPS] Ubicacion de ' + nombre + ' (' + telefono + '): ' + degreesLatitude + ', ' + degreesLongitude)
 
           const sesion = ordenes.obtenerSesion(telefono)
+          console.log('[GPS] sesion:', sesion ? 'existe, articulos=' + sesion.articulos.length + ', estado=' + sesion.estado : 'null')
           if (sesion) {
             const resultado = ordenes.finalizarPedido(telefono, degreesLatitude, degreesLongitude)
             if (resultado) {
@@ -98,6 +99,7 @@ async function main() {
         console.log('[MSG] ' + nombre + ': "' + texto + '"')
 
         const sesion = ordenes.obtenerSesion(telefono)
+        console.log('[MSG] sesion para ' + telefono + ':', sesion ? 'existe, estado=' + sesion.estado + ', articulos=' + sesion.articulos.length : 'null')
 
         if (sesion) {
           let respuesta = null
@@ -106,7 +108,9 @@ async function main() {
           let estado = sesion.estado
 
           if (sesion.estado === 'ARMANDO_PEDIDO') {
+            console.log('[MSG] procesarArmado:', telefono, texto)
             respuesta = await procesarArmado(telefono, texto)
+            console.log('[MSG] respuesta largo:', respuesta ? respuesta.length : 0)
           } else {
             const result = ordenes.procesar(telefono, texto)
             respuesta = result.respuesta
