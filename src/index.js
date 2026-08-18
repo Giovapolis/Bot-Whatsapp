@@ -54,18 +54,30 @@ async function main() {
         if (remitente.includes('@g.us')) continue
 
         const nombre = msg.pushName || 'Desconocido'
-        const telefono = remitente.replace('@s.whatsapp.net', '')
+        const telefono = remitente.replace('@s.whatsapp.net', '').split(':')[0]
 
         if (msg.message.locationMessage) {
           const { degreesLatitude, degreesLongitude } = msg.message.locationMessage
           console.log('[GPS] Ubicacion de ' + nombre + ': ' + degreesLatitude + ', ' + degreesLongitude)
 
           const sesion = ordenes.obtenerSesion(telefono)
-          if (sesion) {
-            const respuesta = ordenes.guardarUbicacion(telefono, degreesLatitude, degreesLongitude)
-            if (respuesta) {
+          if (sesion && sesion.articulos.length > 0) {
+            const resultado = ordenes.finalizarPedido(telefono, degreesLatitude, degreesLongitude)
+            if (resultado) {
               await delay(800 + Math.random() * 1000)
-              await enviarMensaje(sock, remitente, respuesta)
+              await enviarMensaje(sock, remitente, resultado.mensaje)
+
+              const id = 'ped_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)
+              agregarPedido({
+                id: id,
+                nombre: nombre,
+                telefono: telefono,
+                mensaje: resultado.datosPedido.detalles,
+                hora: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
+                ubicacion: resultado.datosPedido.ubicacion,
+                estado: 'nuevo'
+              })
+              console.log('[DASH] Pedido completo via GPS')
             }
           } else {
             await delay(500)

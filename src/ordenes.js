@@ -199,6 +199,34 @@ function guardarUbicacion(telefono, lat, lng) {
   return 'Ubicacion recibida! 📍\n\n' + resumenConfirmar(sesion)
 }
 
+function finalizarPedido(telefono, lat, lng) {
+  const sesion = sesiones.get(telefono)
+  if (!sesion || !sesion.articulos.length) return null
+
+  sesion.ubicacion = { lat: lat, lng: lng, direccion: lat + ', ' + lng }
+  sesion.estado = 'CONFIRMADO'
+
+  const datosPedido = {
+    detalles: formatearDatosPedido(sesion),
+    total: sesion.total,
+    ubicacion: sesion.ubicacion
+  }
+
+  const mensaje = [
+    '✅ *PEDIDO CONFIRMADO*',
+    '',
+    formatearCarrito(sesion.articulos),
+    '💵 *Total: $' + sesion.total + '*',
+    '📍 ' + sesion.ubicacion.direccion,
+    '',
+    'En breve te contactamos para coordinar la entrega.',
+    'Gracias ' + sesion.nombre + '! 🙌'
+  ].join('\n')
+
+  limpiar(telefono)
+  return { mensaje: mensaje, datosPedido: datosPedido }
+}
+
 function formatearDatosPedido(sesion) {
   const lineas = []
   lineas.push(formatearCarrito(sesion.articulos))
@@ -283,6 +311,7 @@ module.exports = {
   obtenerSesion,
   procesar,
   guardarUbicacion,
+  finalizarPedido,
   limpiar,
   agregarArticulos,
   quitarArticulos,

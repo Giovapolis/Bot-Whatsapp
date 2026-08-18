@@ -89,6 +89,7 @@ async function armando(articulos, texto) {
   ].join('\n')
 
   const raw = await ai.generarJSON(prompt, texto)
+  console.log('[IA JSON]', JSON.stringify(raw))
 
   if (!raw || typeof raw !== 'object') {
     return { agregar: [], quitar: [], finalizar: false, resumen: null }
