@@ -275,7 +275,7 @@
             Escanea el codigo QR con tu WhatsApp para conectar el bot
           </p>
           <div style="background:#fff;border-radius:14px;padding:12px;box-shadow:0 0 0 1px rgba(0,0,0,0.06),0 8px 24px rgba(0,0,0,0.06);">
-            <img id="qrLarge" src="" alt="QR WhatsApp" style="width:260px;height:260px;border-radius:10px;display:block;">
+            <img id="qrLarge" src="" alt="QR WhatsApp" style="width:260px;height:260px;border-radius:10px;display:none;">
           </div>
           <div id="qrStatusMsg" style="margin-top:16px;font-size:13px;font-weight:500;"></div>
           <p style="font-size:11px;color:#b0b0b0;margin-top:12px;">
@@ -388,6 +388,9 @@
         img.style.display = 'block'
         img.src = qrActual
         msg.innerHTML = '<span style="color:#8a8a8a;">Esperando escaneo...</span>'
+      } else {
+        img.style.display = 'none'
+        msg.innerHTML = '<span style="color:#8a8a8a;">Generando codigo QR...</span>'
       }
     }
 
