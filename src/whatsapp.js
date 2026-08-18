@@ -4,6 +4,10 @@ const QRCode = require('qrcode')
 let sock = null
 let estado = { conectado: false, qrDataUri: null }
 
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 async function iniciar(io) {
   const { state, saveCreds } = await useMultiFileAuthState('auth')
 
@@ -35,9 +39,18 @@ async function iniciar(io) {
 
     if (connection === 'close') {
       const reason = lastDisconnect?.error?.output?.statusCode
+      const errorMsg = lastDisconnect?.error?.message
       const isLoggedOut = reason === DisconnectReason.loggedOut
-      const isTimeout = lastDisconnect?.error?.message === 'Timed Out'
-      if (isTimeout) {
+      const isTimeout = errorMsg === 'Timed Out'
+      const isConnectionFailure = errorMsg === 'Connection Failure'
+
+      if (isConnectionFailure) {
+        console.error('[ERR] Connection Failure - sesion invalida, reconectando en 5s...')
+        estado.conectado = false
+        io.emit('conn_error', { error: 'Sesion invalida. Reconectando...' })
+        await delay(5000)
+        iniciar(io)
+      } else if (isTimeout) {
         console.warn('[WA] Timeout en init queries, reconectando...')
         iniciar(io)
       } else if (!isLoggedOut) {

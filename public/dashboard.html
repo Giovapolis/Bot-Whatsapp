@@ -420,9 +420,12 @@
         setStatus(true)
       })
 
-      socket.on('conn_error', function() {
+      socket.on('conn_error', function(data) {
         conectado = false
         setStatus(false)
+        qrActual = ''
+        document.getElementById('qrLarge').style.display = 'none'
+        document.getElementById('qrStatusMsg').innerHTML = '<span style="color:#f87171;">' + (data && data.error ? data.error : 'Error de conexion') + '</span>'
       })
 
       socket.on('nuevo_pedido', function(pedido) {
