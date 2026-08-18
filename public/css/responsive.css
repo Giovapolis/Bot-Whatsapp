@@ -1,0 +1,181 @@
+/* Tablet: 768px - 1024px */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 220px;
+  }
+
+  .main-content {
+    padding: 16px;
+  }
+}
+
+/* Mobile: < 768px */
+@media (max-width: 768px) {
+  /* Sidebar becomes overlay */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: -260px;
+    width: 260px;
+    height: 100vh;
+    z-index: 100;
+    transition: left 0.3s ease;
+  }
+
+  .sidebar.open {
+    left: 0;
+  }
+
+  /* Overlay */
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 99;
+  }
+
+  .sidebar-overlay.active {
+    display: block;
+  }
+
+  /* Menu toggle visible */
+  .menu-toggle {
+    display: block;
+  }
+
+  /* Main takes full width */
+  .main {
+    width: 100%;
+  }
+
+  .main-header {
+    padding: 12px 16px;
+  }
+
+  .main-header h1 {
+    font-size: 16px;
+  }
+
+  .main-content {
+    padding: 12px;
+  }
+
+  /* Login responsive */
+  .login-card {
+    padding: 36px 24px 32px;
+  }
+
+  .login-logo {
+    width: 56px;
+    height: 56px;
+    font-size: 26px;
+  }
+
+  .login-title {
+    font-size: 20px;
+  }
+
+  /* Order cards responsive */
+  .order-card {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .order-card .accent {
+    width: 3px;
+  }
+
+  .order-name {
+    font-size: 13px;
+  }
+
+  .order-phone {
+    font-size: 11px;
+  }
+
+  .order-message {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+
+  .order-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .order-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .btn-attend {
+    padding: 8px 14px;
+    font-size: 11px;
+  }
+
+  .btn-maps {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  /* QR responsive */
+  .qr-section {
+    padding: 40px 16px;
+  }
+
+  .qr-section h2 {
+    font-size: 16px;
+  }
+
+  .qr-wrapper img {
+    width: 220px;
+    height: 220px;
+  }
+
+  /* Estado tag */
+  .estado-tag {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+
+  /* Empty state */
+  .empty-state {
+    padding: 40px 16px;
+  }
+
+  .empty-state .icon {
+    font-size: 32px;
+  }
+
+  .empty-state p {
+    font-size: 13px;
+  }
+}
+
+/* Small mobile: < 400px */
+@media (max-width: 400px) {
+  .login-wrapper {
+    padding: 16px;
+  }
+
+  .login-card {
+    padding: 28px 18px 24px;
+  }
+
+  .qr-wrapper img {
+    width: 180px;
+    height: 180px;
+  }
+
+  .order-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .estado-tag {
+    margin-left: 0;
+  }
+}

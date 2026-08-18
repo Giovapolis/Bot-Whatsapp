@@ -1,0 +1,238 @@
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.03), 0 1px 4px rgba(0,0,0,0.03);
+}
+
+.empty-state .icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.empty-state p {
+  color: #8a8a8a;
+  font-size: 14px;
+}
+
+.empty-state .sub {
+  color: #b0b0b0;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* Order List */
+.order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Order Card */
+.order-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.03), 0 1px 4px rgba(0,0,0,0.03);
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.order-card.removing {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.order-card .accent {
+  width: 4px;
+  align-self: stretch;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.order-card .accent.estado-nuevo {
+  background: linear-gradient(180deg, #7c3aed, #a78bfa);
+}
+
+.order-card .accent.estado-preparando {
+  background: linear-gradient(180deg, #f59e0b, #fbbf24);
+}
+
+.order-card .accent.estado-entregado {
+  background: linear-gradient(180deg, #10b981, #34d399);
+}
+
+/* Order Info */
+.order-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.order-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.order-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.order-phone {
+  color: #a0a0a0;
+  font-size: 12px;
+}
+
+/* Estado Tag */
+.estado-tag {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-left: auto;
+}
+
+.estado-tag.nuevo {
+  background: #f0edf8;
+  color: #7c3aed;
+}
+
+.estado-tag.preparando {
+  background: #fef9e7;
+  color: #b45309;
+}
+
+.estado-tag.entregado {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+/* Order Message */
+.order-message {
+  margin-top: 8px;
+  background: #f8f7fc;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  color: #2a2a2a;
+  border-left: 2px solid #e0daf5;
+}
+
+/* Order Footer */
+.order-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.order-time {
+  font-size: 11px;
+  color: #b8b8b8;
+}
+
+.order-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* Buttons */
+.btn-maps {
+  background: #f0edf8;
+  color: #5b3e9e;
+  border: none;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.btn-maps:hover { background: #e2daf5; }
+
+.btn-attend {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  color: #fff;
+  border: none;
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.btn-attend:hover { opacity: 0.9; }
+.btn-attend:active { transform: scale(0.97); }
+
+.btn-prep {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.btn-done {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+/* QR Section */
+.qr-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.03);
+}
+
+.qr-section h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.qr-section .subtitle {
+  font-size: 13px;
+  color: #8a8a8a;
+  margin-bottom: 24px;
+}
+
+.qr-wrapper {
+  background: #fff;
+  border-radius: 14px;
+  padding: 12px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.06);
+}
+
+.qr-wrapper img {
+  width: 260px;
+  height: 260px;
+  border-radius: 10px;
+  display: block;
+}
+
+#qrStatusMsg {
+  margin-top: 16px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.qr-section .hint {
+  font-size: 11px;
+  color: #b0b0b0;
+  margin-top: 12px;
+  text-align: center;
+  line-height: 1.6;
+}
