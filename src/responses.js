@@ -1,5 +1,5 @@
 const ai = require('./ai')
-const { negocio, obtenerSystemPrompt } = require('./negocio')
+const { negocio, obtenerSystemPrompt, formatearMenu } = require('./negocio')
 
 let systemPrompt = ''
 
@@ -21,42 +21,75 @@ async function procesar(texto) {
   return { respuesta, esPedido: false }
 }
 
-function formatearCarrito(articulos) {
-  if (!articulos || articulos.length === 0) return 'CARRITO ACTUAL: (vacío)'
-  const lineas = articulos.map(i => {
-    let linea = i.cantidad + 'x ' + i.nombre + ' ($' + i.precio + ' c/u)'
-    if (i.detalle) linea += ' — ' + i.detalle
-    return linea
-  })
-  return 'CARRITO ACTUAL:\n- ' + lineas.join('\n- ')
-}
-
 function normalizarItems(input) {
   if (!input) return []
   if (Array.isArray(input)) {
     return input.map(item => {
-      if (typeof item === 'string') return { nombre: item, cantidad: 1, detalle: null }
+      if (typeof item === 'string') {
+        const nombre = item.trim()
+        return nombre ? { nombre: nombre, cantidad: 1, detalle: null } : null
+      }
       if (typeof item === 'object' && item !== null) {
         const nombre = item.nombre || item.name || item.item || item.product || item.plato || null
         if (!nombre) return null
-        return { nombre: nombre, cantidad: parseInt(item.cantidad || item.qty || item.quantity, 10) || 1, detalle: item.detalle || item.detail || item.note || null }
+        const cantidad = parseInt(item.cantidad || item.qty || item.quantity, 10) || 1
+        const detalle = item.detalle || item.detail || item.note || null
+        return { nombre: String(nombre).trim(), cantidad: cantidad, detalle: detalle }
       }
       return null
     }).filter(Boolean)
   }
-  if (typeof input === 'string') return [{ nombre: input, cantidad: 1, detalle: null }]
-  if (typeof input === 'object') {
+  if (typeof input === 'string') {
+    const texto = input.trim()
+    if (!texto) return []
+    const partes = texto.split(/[,;]+/).map(s => s.trim()).filter(Boolean)
+    return partes.map(nombre => ({ nombre: nombre, cantidad: 1, detalle: null }))
+  }
+  if (typeof input === 'object' && input !== null) {
     const nombre = input.nombre || input.name || input.item || input.product || input.plato || null
-    if (nombre) return [{ nombre: nombre, cantidad: parseInt(input.cantidad || input.qty, 10) || 1, detalle: input.detalle || null }]
+    if (nombre) {
+      const cantidad = parseInt(input.cantidad || input.qty, 10) || 1
+      return [{ nombre: String(nombre).trim(), cantidad: cantidad, detalle: input.detalle || null }]
+    }
   }
   return []
 }
 
+function formatearCarrito(articulos) {
+  if (!articulos || articulos.length === 0) return 'Carrito vacio.'
+  return articulos.map(i => {
+    let linea = '  ' + i.cantidad + 'x ' + i.nombre + ' — $' + (i.precio * i.cantidad)
+    if (i.detalle) linea += '\n    ' + i.detalle
+    return linea
+  }).join('\n')
+}
+
+function ticket(sesion) {
+  if (!sesion || !sesion.articulos || sesion.articulos.length === 0) {
+    return 'Tu carrito esta vacio.\nAgrega algo del menu para comenzar.'
+  }
+  const lineas = []
+  lineas.push('╔═══════════════════════╗')
+  lineas.push('║  ' + negocio.nombre.toUpperCase() + '  ║')
+  lineas.push('╚═══════════════════════╝')
+  lineas.push('')
+  for (const a of sesion.articulos) {
+    const sub = a.precio * a.cantidad
+    lineas.push('  ' + a.cantidad + 'x ' + a.nombre + ' — $' + sub)
+    if (a.detalle) lineas.push('    ' + a.detalle)
+  }
+  lineas.push('')
+  lineas.push('───────────────────────')
+  lineas.push('  TOTAL: $' + sesion.total)
+  lineas.push('───────────────────────')
+  return lineas.join('\n')
+}
+
 async function armando(articulos, texto) {
   const prompt = [
-    'Sos el mesero de "' + negocio.nombre + '". Estás armando un pedido por WhatsApp.',
+    'Sos el mesero de "' + negocio.nombre + '". Estas armando un pedido por WhatsApp.',
     '',
-    'MENÚ:',
+    'MENU:',
     formatearMenu(),
     '',
     'CARRITO ACTUAL:',
@@ -65,48 +98,34 @@ async function armando(articulos, texto) {
     'EL CLIENTE DICE:',
     '"' + texto + '"',
     '',
-    'Tu tarea: analizar qué quiere el cliente y devolver SOLO un JSON válido.',
+    'Devolve SOLO un JSON valido con este formato exacto:',
     '',
-    'FORMATO:',
-    '{"agregar":[],"quitar":[],"finalizar":false,"resumen":"<tu respuesta>"}',
+    '{"agregar":[],"quitar":[],"finalizar":false,"resumen":"tu respuesta"}',
     '',
     'CAMPOS:',
-    '- agregar: [{"nombre":"<nombre exacto>","cantidad":1,"detalle":"Salsa: X" o "Sabor: X" o null}]',
-    '- quitar: [{"nombre":"<nombre exacto>","cantidad":1}]',
-    '- finalizar: true cuando el cliente indique que ya no quiere nada más ("ya es todo", "nada más", "creo que sí", "eso es todo", "creo que con eso", etc.)',
-    '- resumen: tu respuesta natural al cliente, como si fueras el mesero hablando',
+    '- agregar: array de objetos con "nombre" (exacto del menu), "cantidad" (numero), "detalle" (string o null)',
+    '- quitar: array de objetos con "nombre" y "cantidad"',
+    '- finalizar: true SOLO si el cliente dice que ya no quiere nada mas',
+    '- resumen: tu respuesta natural como mesero',
     '',
-    'EJEMPLOS DE CONVERSACIÓN:',
+    'NOMBRES EXACTOS DEL MENU:',
+    '- Alitas ($85)',
+    '- Costillas BBQ ($95)',
+    '- Salchipulpos ($45)',
+    '- Papas a la francesa ($45)',
+    '- Tutifruti ($25)',
+    '- Limon ($25)',
+    '- Uva ($25)',
+    '- Mango ($25)',
+    '- Guayaba ($25)',
+    '- Natural ($25)',
     '',
-    'Cliente: "Quiero 2 alitas y un refresco de limón"',
-    '{"agregar":[{"nombre":"Alitas","cantidad":2,"detalle":null},{"nombre":"Refrescos","cantidad":1,"detalle":"Sabor: Limón"}],"quitar":[],"finalizar":false,"resumen":"Perfecto, 2 alitas y 1 refresco de limón. ¿De qué salsa querés las alitas?"}',
-    '',
-    'Cliente: "BBQ"',
-    '{"agregar":[{"nombre":"Alitas","cantidad":1,"detalle":"Salsa: BBQ"}],"quitar":[],"finalizar":false,"resumen":"Listo, 2 alitas con BBQ y 1 refresco de limón. ¿Algo más?"}',
-    '',
-    'Cliente: "Las alitas ponelas con mango habanero"',
-    '{"agregar":[],"quitar":[],"finalizar":false,"resumen":"Cambié las alitas a mango habanero. ¿Algo más?"}',
-    '',
-    'Cliente: "Dame 2 costillas y unas papas"',
-    '{"agregar":[{"nombre":"Costillas BBQ","cantidad":2,"detalle":null},{"nombre":"Papas a la francesa","cantidad":1,"detalle":null}],"quitar":[],"finalizar":false,"resumen":"Anoté 2 costillas BBQ y papas a la francesa. ¿De qué salsa querés las costillas?"}',
-    '',
-    'Cliente: "Creo que ya es todo"',
-    '{"agregar":[],"quitar":[],"finalizar":true,"resumen":"¡Genial! Compartime tu ubicación para la entrega 📍"}',
-    '',
-    'Cliente: "Quiero 2 alitas BBQ y 1 jugo de mango"',
-    '{"agregar":[{"nombre":"Alitas","cantidad":2,"detalle":"Salsa: BBQ"},{"nombre":"Jugos","cantidad":1,"detalle":"Sabor: Mango"}],"quitar":[],"finalizar":false,"resumen":"Anoté 2 alitas con BBQ y 1 jugo de mango. ¿Algo más?"}',
-    '',
-    'Cliente: "Quita las papas"',
-    '{"agregar":[],"quitar":[{"nombre":"Papas a la francesa","cantidad":1}],"finalizar":false,"resumen":"Listo, quité las papas. ¿Algo más?"}',
-    '',
-    'REGLAS:',
-    '- nombre EXACTO del menú: "Alitas", "Costillas BBQ", "Salchipulpos", "Papas a la francesa", "Tutifruti", "Limón", "Uva", "Mango", "Guayaba", "Natural".',
-    '- Si pide alitas/costillas SIN salsa: agregá con detalle null, preguntá la salsa en resumen.',
-    '- Si pide refresco/jugo SIN sabor: agregá con detalle null, preguntá el sabor en resumen.',
-    '- Si el cliente aclara salsa/sabor después: actualizá el detalle del item existente.',
-    '- Si dice algo que no está en el menú: no agregues, explicá amablemente.',
-    '- Tu resumen debe ser NATURAL, como un mesero hablando con el cliente.',
-    '- Si el cliente confirma que ya no quiere nada más, finalizá y pedí la ubicación.',
+    'REGLAS IMPORTANTES:',
+    '- El campo "agregar" SIEMPRE debe ser un array de objetos, NUNCA un string.',
+    '- Ejemplo correcto: {"agregar":[{"nombre":"Alitas","cantidad":1,"detalle":null}]}',
+    '- Ejemplo INCORRECTO: {"agregar":"Alitas"}',
+    '- Si pide alitas/costillas sin salsa: detalle null, preguntar la salsa.',
+    '- Si pide refresco/jugo sin sabor: detalle null, preguntar el sabor.',
   ].join('\n')
 
   const raw = await ai.generarJSON(prompt, texto)
@@ -129,4 +148,4 @@ async function armando(articulos, texto) {
   }
 }
 
-module.exports = { procesar, armando }
+module.exports = { procesar, armando, ticket }

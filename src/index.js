@@ -20,7 +20,8 @@ async function procesarArmado(telefono, texto) {
   const r = await responses.armando(sesion.articulos, texto)
 
   if (r.agregar && r.agregar.length) {
-    ordenes.agregarArticulos(telefono, r.agregar)
+    const resultado = ordenes.agregarArticulos(telefono, r.agregar)
+    console.log('[ARMADO] Agregados:', resultado.validos, 'Invalidos:', resultado.invalidos.length)
   }
 
   if (r.quitar && r.quitar.length) {
@@ -28,17 +29,16 @@ async function procesarArmado(telefono, texto) {
   }
 
   const sesionActualizada = ordenes.obtenerSesion(telefono)
-  const ticketActual = ordenes.ticket(sesionActualizada)
+  const ticketActual = responses.ticket(sesionActualizada)
 
   if (r.finalizar) {
     const pideUbic = ordenes.finalizarArmado(telefono)
-    const cierre = ordenes.resumenConTotal(telefono, r.resumen)
+    const cierre = r.resumen || 'Perfecto, ya tengo tu pedido completo.'
     return [cierre, '', ticketActual, '', pideUbic].join('\n')
   }
 
-  const respuesta = ordenes.resumenConTotal(telefono, r.resumen)
-  const base = respuesta || 'Voy anotando. Decime que mas queres o "*la cuenta*" cuando termines.'
-  return base + '\n\n' + ticketActual
+  const respuesta = r.resumen || 'Voy anotando. Decime que mas queres o "*la cuenta*" cuando termines.'
+  return respuesta + '\n\n' + ticketActual
 }
 
 async function main() {
@@ -61,8 +61,7 @@ async function main() {
           console.log('[GPS] Ubicacion de ' + nombre + ' (' + telefono + '): ' + degreesLatitude + ', ' + degreesLongitude)
 
           const sesion = ordenes.obtenerSesion(telefono)
-          console.log('[GPS] sesion:', sesion ? 'existe, articulos=' + sesion.articulos.length + ', estado=' + sesion.estado : 'null')
-          if (sesion) {
+          if (sesion && sesion.articulos.length > 0) {
             const resultado = ordenes.finalizarPedido(telefono, degreesLatitude, degreesLongitude)
             if (resultado) {
               await delay(800 + Math.random() * 1000)
@@ -78,11 +77,14 @@ async function main() {
                 ubicacion: resultado.datosPedido.ubicacion,
                 estado: 'nuevo'
               })
-              console.log('[DASH] Pedido completo via GPS')
+              console.log('[DASH] Pedido guardado:', id)
             }
+          } else if (sesion && sesion.articulos.length === 0) {
+            await delay(500)
+            await enviarMensaje(sock, remitente, 'Todavia no tengo tu pedido. Decime que se te antoja del menu y despues envia tu ubicacion.')
           } else {
             await delay(500)
-            await enviarMensaje(sock, remitente, 'Ubicacion recibida 📍. Si queres hacer un pedido, decime que se te antoja.')
+            await enviarMensaje(sock, remitente, 'Ubicacion recibida. Si queres hacer un pedido, decime que se te antoja.')
           }
           continue
         }
@@ -95,11 +97,9 @@ async function main() {
         if (!texto) continue
 
         texto = truncarTexto(texto)
-
         console.log('[MSG] ' + nombre + ': "' + texto + '"')
 
         const sesion = ordenes.obtenerSesion(telefono)
-        console.log('[MSG] sesion para ' + telefono + ':', sesion ? 'existe, estado=' + sesion.estado + ', articulos=' + sesion.articulos.length : 'null')
 
         if (sesion) {
           let respuesta = null
@@ -108,9 +108,7 @@ async function main() {
           let estado = sesion.estado
 
           if (sesion.estado === 'ARMANDO_PEDIDO') {
-            console.log('[MSG] procesarArmado:', telefono, texto)
             respuesta = await procesarArmado(telefono, texto)
-            console.log('[MSG] respuesta largo:', respuesta ? respuesta.length : 0)
           } else {
             const result = ordenes.procesar(telefono, texto)
             respuesta = result.respuesta
@@ -121,7 +119,7 @@ async function main() {
 
           if (respuesta) {
             await delay(800 + Math.random() * 1200)
-            const ok = await enviarMensaje(sock, remitente, respuesta, 'paso=' + (estado || '?') + ' finalizado=' + finalizado)
+            await enviarMensaje(sock, remitente, respuesta, 'paso=' + (estado || '?') + ' finalizado=' + finalizado)
 
             if (finalizado && datosPedido) {
               const id = 'ped_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)
@@ -134,7 +132,7 @@ async function main() {
                 ubicacion: datosPedido.ubicacion,
                 estado: 'nuevo'
               })
-              console.log('[DASH] Pedido completo')
+              console.log('[DASH] Pedido guardado:', id)
             }
           }
           continue

@@ -213,6 +213,10 @@ function finalizarPedido(telefono, lat, lng) {
     console.log('[ORDENES] finalizarPedido: sesion null para', telefono)
     return null
   }
+  if (!sesion.articulos || sesion.articulos.length === 0) {
+    console.log('[ORDENES] finalizarPedido: sin articulos para', telefono)
+    return null
+  }
   console.log('[ORDENES] finalizarPedido:', telefono, 'articulos:', sesion.articulos.length, 'total:', sesion.total)
 
   sesion.ubicacion = { lat: lat, lng: lng, direccion: lat + ', ' + lng }
