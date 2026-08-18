@@ -55,7 +55,7 @@
 }
 
 .order-card .accent.estado-nuevo {
-  background: linear-gradient(180deg, #7c3aed, #a78bfa);
+  background: linear-gradient(180deg, #9b2335, #c94a5e);
 }
 
 .order-card .accent.estado-preparando {
@@ -101,8 +101,7 @@
 }
 
 .estado-tag.nuevo {
-  background: #f0edf8;
-  color: #7c3aed;
+  background: #fdf0f2; color: #9b2335;
 }
 
 .estado-tag.preparando {
@@ -118,14 +117,14 @@
 /* Order Message */
 .order-message {
   margin-top: 8px;
-  background: #f8f7fc;
+  background: #fdf8f8;
   padding: 10px 14px;
   border-radius: 8px;
   font-size: 13px;
   line-height: 1.5;
   white-space: pre-wrap;
   color: #2a2a2a;
-  border-left: 2px solid #e0daf5;
+  border-left: 2px solid #f0d5d8;
 }
 
 /* Order Footer */
@@ -148,8 +147,7 @@
 
 /* Buttons */
 .btn-maps {
-  background: #f0edf8;
-  color: #5b3e9e;
+  background: #fdf0f2; color: #7a1c2a;
   border: none;
   padding: 7px 12px;
   border-radius: 8px;
@@ -160,10 +158,10 @@
   transition: background 0.15s;
 }
 
-.btn-maps:hover { background: #e2daf5; }
+.btn-maps:hover { background: #f5dfe2; }
 
 .btn-attend {
-  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  background: linear-gradient(135deg, #9b2335, #7a1c2a);
   color: #fff;
   border: none;
   padding: 7px 16px;
