@@ -24,7 +24,7 @@ function limpiarAuth() {
   }
 }
 
-async function iniciar(io) {
+async function iniciar(io, onConnect) {
   const { state, saveCreds } = await useMultiFileAuthState('auth')
 
   sock = makeWASocket({
@@ -53,6 +53,7 @@ async function iniciar(io) {
       estado.qrDataUri = null
       fallosConsecutivos = 0
       io.emit('conn_ready')
+      if (onConnect) onConnect(sock)
     }
 
     if (connection === 'close') {
@@ -74,20 +75,20 @@ async function iniciar(io) {
           limpiarAuth()
           fallosConsecutivos = 0
           await delay(2000)
-          iniciar(io)
+          iniciar(io, onConnect)
         } else {
           io.emit('conn_error', { error: 'Error de conexion. Reconectando...' })
           await delay(3000)
-          iniciar(io)
+          iniciar(io, onConnect)
         }
       } else if (isTimeout) {
         console.warn('[WA] Timeout en init queries, reconectando...')
         fallosConsecutivos++
         await delay(3000)
-        iniciar(io)
+        iniciar(io, onConnect)
       } else if (!isLoggedOut) {
         await delay(3000)
-        iniciar(io)
+        iniciar(io, onConnect)
       } else {
         estado.conectado = false
         io.emit('conn_error', { error: 'Sesion cerrada. Escanea el QR nuevamente.' })
