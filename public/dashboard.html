@@ -375,6 +375,7 @@
         document.getElementById('sectionTitle').textContent = 'QR / Conexion'
         document.getElementById('sectionMeta').textContent = conectado ? 'Conectado' : 'Desconectado'
         actualizarQrSection()
+        if (socket) socket.emit('solicitar_qr')
       }
     }
 

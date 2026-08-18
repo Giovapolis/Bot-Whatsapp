@@ -32,7 +32,7 @@ services:
       GEMINI_SA_FILE: ${GEMINI_SA_FILE:-/app/secrets/gemini-sa.json}
       GEMINI_MODELS: ${GEMINI_MODELS:-gemini-flash-latest,gemini-2.5-flash}
     volumes:
-      - auth_data:/app/auth
+      - ./auth:/app/auth
       - ./secrets:/app/secrets:ro
     depends_on:
       db:
@@ -41,4 +41,3 @@ services:
 
 volumes:
   pgdata:
-  auth_data:

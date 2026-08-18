@@ -56,6 +56,15 @@ async function iniciar(puerto) {
       socket.emit('conn_ready')
     }
 
+    socket.on('solicitar_qr', () => {
+      const estado = whatsapp.obtenerEstado()
+      if (estado.conectado) {
+        socket.emit('conn_ready')
+      } else if (estado.qrDataUri) {
+        socket.emit('qr', { qrDataUri: estado.qrDataUri })
+      }
+    })
+
     socket.on('obtener_pedidos', () => {
       socket.emit('pedidos_actuales', pedidos)
     })

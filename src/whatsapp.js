@@ -1,11 +1,27 @@
 const { makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers } = require('baileys')
 const QRCode = require('qrcode')
+const fs = require('fs')
+const path = require('path')
 
 let sock = null
 let estado = { conectado: false, qrDataUri: null }
+let fallosConsecutivos = 0
+const MAX_FALLOS = 3
 
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function limpiarAuth() {
+  try {
+    const authPath = path.join(__dirname, '..', 'auth')
+    if (fs.existsSync(authPath)) {
+      fs.rmSync(authPath, { recursive: true, force: true })
+      console.log('[WA] Carpeta auth eliminada')
+    }
+  } catch (err) {
+    console.error('[ERR] No se pudo limpiar auth: ' + err.message)
+  }
 }
 
 async function iniciar(io) {
@@ -27,6 +43,7 @@ async function iniciar(io) {
       console.log('[QR] Codigo QR generado - escanea con WhatsApp')
       estado.qrDataUri = await QRCode.toDataURL(qr, { width: 400, margin: 2 })
       estado.conectado = false
+      fallosConsecutivos = 0
       io.emit('qr', { qrDataUri: estado.qrDataUri })
     }
 
@@ -34,6 +51,7 @@ async function iniciar(io) {
       console.log('[OK] WhatsApp conectado')
       estado.conectado = true
       estado.qrDataUri = null
+      fallosConsecutivos = 0
       io.emit('conn_ready')
     }
 
@@ -45,15 +63,30 @@ async function iniciar(io) {
       const isConnectionFailure = errorMsg === 'Connection Failure'
 
       if (isConnectionFailure) {
-        console.error('[ERR] Connection Failure - sesion invalida, reconectando en 5s...')
-        estado.conectado = false
-        io.emit('conn_error', { error: 'Sesion invalida. Reconectando...' })
-        await delay(5000)
-        iniciar(io)
+        fallosConsecutivos++
+        console.error('[ERR] Connection Failure (' + fallosConsecutivos + '/' + MAX_FALLOS + ')')
+
+        if (fallosConsecutivos >= MAX_FALLOS) {
+          console.error('[WA] Demasiados fallos, limpiando sesion...')
+          estado.conectado = false
+          estado.qrDataUri = null
+          io.emit('conn_error', { error: 'Sesion corrupta. Limpiando y generando QR nuevo...' })
+          limpiarAuth()
+          fallosConsecutivos = 0
+          await delay(2000)
+          iniciar(io)
+        } else {
+          io.emit('conn_error', { error: 'Error de conexion. Reconectando...' })
+          await delay(3000)
+          iniciar(io)
+        }
       } else if (isTimeout) {
         console.warn('[WA] Timeout en init queries, reconectando...')
+        fallosConsecutivos++
+        await delay(3000)
         iniciar(io)
       } else if (!isLoggedOut) {
+        await delay(3000)
         iniciar(io)
       } else {
         estado.conectado = false
