@@ -72,9 +72,12 @@ function agregarArticulos(telefono, items) {
   let validos = 0
 
   for (const item of items || []) {
-    const ref = buscarItem(item && item.nombre)
+    const nombreItem = (typeof item === 'string' ? item : null)
+      || (item && (item.nombre || item.name || item.item || item.product || item.plato))
+    const ref = buscarItem(nombreItem)
     if (!ref) {
-      invalidos.push(item && item.nombre)
+      console.log('[ORDENES] Item invalido:', JSON.stringify(item))
+      invalidos.push(nombreItem || JSON.stringify(item))
       continue
     }
     const cantidad = Math.max(1, parseInt(item.cantidad, 10) || 1)

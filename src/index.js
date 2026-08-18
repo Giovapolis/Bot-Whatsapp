@@ -61,7 +61,7 @@ async function main() {
           console.log('[GPS] Ubicacion de ' + nombre + ': ' + degreesLatitude + ', ' + degreesLongitude)
 
           const sesion = ordenes.obtenerSesion(telefono)
-          if (sesion && sesion.articulos.length > 0) {
+          if (sesion) {
             const resultado = ordenes.finalizarPedido(telefono, degreesLatitude, degreesLongitude)
             if (resultado) {
               await delay(800 + Math.random() * 1000)

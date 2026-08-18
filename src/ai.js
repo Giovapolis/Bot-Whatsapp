@@ -52,14 +52,15 @@ async function generarTexto(sistema, mensaje, jsonMode) {
 
 function parseJSON(texto) {
   if (!texto) return null
-  const inicio = texto.indexOf('{')
-  const fin = texto.lastIndexOf('}')
+  let limpio = texto.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+  const inicio = limpio.indexOf('{')
+  const fin = limpio.lastIndexOf('}')
   if (inicio === -1 || fin === -1 || fin <= inicio) {
-    console.error('[ERR] JSON invalido de la IA: ' + texto.slice(0, 120))
+    console.error('[ERR] JSON invalido de la IA: ' + limpio.slice(0, 120))
     return null
   }
   try {
-    let jsonStr = texto.slice(inicio, fin + 1)
+    let jsonStr = limpio.slice(inicio, fin + 1)
     jsonStr = jsonStr.replace(/,\s*([}\]])/g, '$1')
     return JSON.parse(jsonStr)
   } catch (err) {
