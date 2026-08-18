@@ -10,11 +10,25 @@ const server = http.createServer(app)
 const io = new Server(server)
 const pedidos = []
 
-app.use(express.json())
+const ESTADOS_VALIDOS = ['nuevo', 'preparando', 'entregado']
+
+app.use(express.json({ limit: '10kb' }))
+
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('X-Frame-Options', 'DENY')
+  res.setHeader('X-XSS-Protection', '1; mode=block')
+  res.setHeader('Referrer-Policy', 'no-referrer')
+  next()
+})
+
 app.use(express.static(path.join(__dirname, '..', 'public')))
 
 app.post('/api/login', (req, res) => {
   const { user, pass } = req.body
+  if (!user || !pass) {
+    return res.status(400).json({ error: 'Faltan credenciales' })
+  }
   const token = login(user, pass)
   if (!token) {
     return res.status(401).json({ error: 'Credenciales invalidas' })
@@ -32,9 +46,13 @@ app.get('/', (req, res) => {
 
 io.use(authSocket)
 
-function agregarPedido(data) {
+async function agregarPedido(data) {
   pedidos.unshift(data)
-  db.guardarPedido(data)
+  try {
+    await db.guardarPedido(data)
+  } catch (err) {
+    console.error('[ERR] DB guardar pedido: ' + err.message)
+  }
   io.emit('nuevo_pedido', data)
 }
 
@@ -69,17 +87,30 @@ async function iniciar(puerto) {
       socket.emit('pedidos_actuales', pedidos)
     })
 
-    socket.on('cambiar_estado', ({ id, estado }) => {
+    socket.on('cambiar_estado', async ({ id, estado }) => {
+      if (!ESTADOS_VALIDOS.includes(estado)) return
       const p = pedidos.find(ped => ped.id === id)
       if (p) {
         p.estado = estado
-        db.actualizarEstado(id, estado)
+        try {
+          await db.actualizarEstado(id, estado)
+        } catch (err) {
+          console.error('[ERR] DB actualizar estado: ' + err.message)
+        }
         io.emit('pedido_actualizado', p)
       }
     })
   })
 
+  process.on('SIGTERM', shutdown)
+  process.on('SIGINT', shutdown)
+
   return io
+}
+
+function shutdown() {
+  console.log('[SRV] Cerrando...')
+  db.cerrar().then(() => process.exit(0)).catch(() => process.exit(1))
 }
 
 module.exports = { iniciar, agregarPedido }

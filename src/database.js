@@ -3,7 +3,6 @@ const DIAS_RETENCION = parseInt(process.env.CLEANUP_DAYS || "15");
 const URL_BD = process.env.DATABASE_URL || "";
 
 let pool = null;
-let memoria = [];
 
 async function inicializar() {
   if (URL_BD.startsWith("postgresql://") || URL_BD.startsWith("postgres://")) {
@@ -49,16 +48,6 @@ async function guardarPedido(data) {
   }
 }
 
-async function obtenerPedidos() {
-  if (pool) {
-    const { rows } = await pool.query(
-      "SELECT * FROM pedidos ORDER BY created_at DESC",
-    );
-    return rows.map((r) => ({ ...r, ubicacion: r.ubicacion || null }));
-  }
-  return memoria;
-}
-
 async function actualizarEstado(id, estado) {
   if (pool) {
     await pool.query("UPDATE pedidos SET estado = $1 WHERE id = $2", [
@@ -98,7 +87,6 @@ async function cerrar() {
 module.exports = {
   inicializar,
   guardarPedido,
-  obtenerPedidos,
   actualizarEstado,
   cerrar,
 };

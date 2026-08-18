@@ -1,5 +1,5 @@
 const ai = require('./ai')
-const { negocio, formatearMenu, obtenerSystemPrompt } = require('./negocio')
+const { negocio, obtenerSystemPrompt } = require('./negocio')
 
 let systemPrompt = ''
 

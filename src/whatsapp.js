@@ -2,15 +2,14 @@ const { makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers } = requ
 const QRCode = require('qrcode')
 const fs = require('fs')
 const path = require('path')
+const { delay } = require('./utils')
 
 let sock = null
 let estado = { conectado: false, qrDataUri: null }
 let fallosConsecutivos = 0
 const MAX_FALLOS = 3
-
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
+const MAX_REINTENTOS = 10
+let reintentoTotal = 0
 
 function limpiarAuth() {
   try {
@@ -26,6 +25,11 @@ function limpiarAuth() {
 
 async function iniciar(io, onConnect) {
   const { state, saveCreds } = await useMultiFileAuthState('auth')
+
+  if (sock) {
+    try { sock.end(undefined) } catch (e) {}
+    sock = null
+  }
 
   sock = makeWASocket({
     auth: state,
@@ -44,6 +48,7 @@ async function iniciar(io, onConnect) {
       estado.qrDataUri = await QRCode.toDataURL(qr, { width: 400, margin: 2 })
       estado.conectado = false
       fallosConsecutivos = 0
+      reintentoTotal = 0
       io.emit('qr', { qrDataUri: estado.qrDataUri })
     }
 
@@ -52,6 +57,7 @@ async function iniciar(io, onConnect) {
       estado.conectado = true
       estado.qrDataUri = null
       fallosConsecutivos = 0
+      reintentoTotal = 0
       io.emit('conn_ready')
       if (onConnect) onConnect(sock)
     }
@@ -62,6 +68,19 @@ async function iniciar(io, onConnect) {
       const isLoggedOut = reason === DisconnectReason.loggedOut
       const isTimeout = errorMsg === 'Timed Out'
       const isConnectionFailure = errorMsg === 'Connection Failure'
+
+      reintentoTotal++
+      if (reintentoTotal > MAX_REINTENTOS) {
+        console.error('[WA] Maximo de reconexiones alcanzado, limpiando sesion...')
+        estado.conectado = false
+        estado.qrDataUri = null
+        io.emit('conn_error', { error: 'Sesion agotada. Limpiando...' })
+        limpiarAuth()
+        reintentoTotal = 0
+        await delay(2000)
+        iniciar(io, onConnect)
+        return
+      }
 
       if (isConnectionFailure) {
         fallosConsecutivos++
@@ -74,6 +93,7 @@ async function iniciar(io, onConnect) {
           io.emit('conn_error', { error: 'Sesion corrupta. Limpiando y generando QR nuevo...' })
           limpiarAuth()
           fallosConsecutivos = 0
+          reintentoTotal = 0
           await delay(2000)
           iniciar(io, onConnect)
         } else {
@@ -103,8 +123,4 @@ function obtenerEstado() {
   return estado
 }
 
-function obtenerSocket() {
-  return sock
-}
-
-module.exports = { iniciar, obtenerEstado, obtenerSocket }
+module.exports = { iniciar, obtenerEstado }

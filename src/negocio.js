@@ -61,10 +61,6 @@ function formatearMenu() {
   return txt;
 }
 
-function formatearHorario() {
-  return "\nVie-Sáb-Dom: " + negocio.horario.finSemana + "\n" + negocio.horario.nota;
-}
-
 function obtenerSystemPrompt() {
   return [
     'Sos un mesero profesional de "' + negocio.nombre + '", ' + negocio.tipo + '.',
@@ -107,6 +103,5 @@ function obtenerSystemPrompt() {
 module.exports = {
   negocio,
   formatearMenu,
-  formatearHorario,
   obtenerSystemPrompt,
 };

@@ -156,7 +156,8 @@ function conectarSocket() {
     setStatus(false)
     qrActual = ''
     document.getElementById('qrLarge').style.display = 'none'
-    document.getElementById('qrStatusMsg').innerHTML = '<span style="color:#f87171;">' + (data && data.error ? data.error : 'Error de conexion') + '</span>'
+    var errText = data && data.error ? e(data.error) : 'Error de conexion'
+    document.getElementById('qrStatusMsg').innerHTML = '<span style="color:#f87171;">' + errText + '</span>'
   })
 
   socket.on('nuevo_pedido', function(pedido) {
@@ -220,15 +221,18 @@ function renderList(listId, emptyId, items) {
   list.innerHTML = items.map(function(p) {
     var mapaBtn = ''
     if (p.ubicacion && p.ubicacion.lat && p.ubicacion.lng) {
-      mapaBtn = '<a href="javascript:abrirMapas(' + p.ubicacion.lat + ',' + p.ubicacion.lng + ')" class="btn-maps">Mapa</a>'
+      var lat = parseFloat(p.ubicacion.lat) || 0
+      var lng = parseFloat(p.ubicacion.lng) || 0
+      mapaBtn = '<a href="#" class="btn-maps" onclick="abrirMapas(' + lat + ',' + lng + ');return false">Mapa</a>'
     }
 
     var estadoLabel = p.estado.charAt(0).toUpperCase() + p.estado.slice(1)
     var btnAccion = ''
+    var safeId = e(p.id)
     if (p.estado === 'nuevo') {
-      btnAccion = '<button class="btn-attend btn-prep" onclick="cambiarEstado(\'' + p.id + "','preparando')\">Preparando</button>"
+      btnAccion = '<button class="btn-attend btn-prep" onclick="cambiarEstado(\'' + safeId + "','preparando')\">Preparando</button>"
     } else if (p.estado === 'preparando') {
-      btnAccion = '<button class="btn-attend btn-done" onclick="cambiarEstado(\'' + p.id + "','entregado')\">Entregado</button>"
+      btnAccion = '<button class="btn-attend btn-done" onclick="cambiarEstado(\'' + safeId + "','entregado')\">Entregado</button>"
     }
 
     return '<div class="order-card" data-id="' + p.id + '">' +

@@ -4,16 +4,12 @@ const { iniciar, agregarPedido } = require('./server')
 const whatsapp = require('./whatsapp')
 const responses = require('./responses')
 const ordenes = require('./ordenes')
+const { delay, enviarMensaje, esCancelacion, truncarTexto } = require('./utils')
 
 const puerto = process.env.PORT || 3000
 
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
-
 async function procesarArmado(telefono, texto) {
-  const t = texto.toLowerCase().trim()
-  if (['cancelar', 'cancel', 'salir', 'despues', 'nunca', 'no quiero', 'mejor no'].includes(t)) {
+  if (esCancelacion(texto)) {
     ordenes.limpiar(telefono)
     return 'Sin problema, cuando quieras pedir solo decime. 🙌'
   }
@@ -69,21 +65,23 @@ async function main() {
             const respuesta = ordenes.guardarUbicacion(telefono, degreesLatitude, degreesLongitude)
             if (respuesta) {
               await delay(800 + Math.random() * 1000)
-              await sock.sendMessage(remitente, { text: respuesta })
+              await enviarMensaje(sock, remitente, respuesta)
             }
           } else {
             await delay(500)
-            await sock.sendMessage(remitente, { text: 'Ubicacion recibida 📍. Si queres hacer un pedido, decime que se te antoja.' })
+            await enviarMensaje(sock, remitente, 'Ubicacion recibida 📍. Si queres hacer un pedido, decime que se te antoja.')
           }
           continue
         }
 
-        const texto = msg.message.conversation ||
+        let texto = msg.message.conversation ||
           msg.message.extendedTextMessage?.text ||
           msg.message.imageMessage?.caption ||
           ''
 
         if (!texto) continue
+
+        texto = truncarTexto(texto)
 
         console.log('[MSG] ' + nombre + ': "' + texto + '"')
 
@@ -107,12 +105,7 @@ async function main() {
 
           if (respuesta) {
             await delay(800 + Math.random() * 1200)
-            try {
-              await sock.sendMessage(remitente, { text: respuesta })
-              console.log('[OK] paso=' + (estado || '?') + ' finalizado=' + finalizado)
-            } catch (err) {
-              console.error('[ERR] ' + err.message)
-            }
+            const ok = await enviarMensaje(sock, remitente, respuesta, 'paso=' + (estado || '?') + ' finalizado=' + finalizado)
 
             if (finalizado && datosPedido) {
               const id = 'ped_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)
@@ -137,20 +130,10 @@ async function main() {
           ordenes.iniciar(telefono, nombre)
           const primerMsg = await procesarArmado(telefono, texto)
           await delay(800 + Math.random() * 1200)
-          try {
-            await sock.sendMessage(remitente, { text: primerMsg })
-            console.log('[OK] Sesion iniciada para ' + nombre)
-          } catch (err) {
-            console.error('[ERR] ' + err.message)
-          }
+          await enviarMensaje(sock, remitente, primerMsg, 'Sesion iniciada para ' + nombre)
         } else if (result.respuesta) {
           await delay(500 + Math.random() * 1000)
-          try {
-            await sock.sendMessage(remitente, { text: result.respuesta })
-            console.log('[OK] respuesta enviada')
-          } catch (err) {
-            console.error('[ERR] ' + err.message)
-          }
+          await enviarMensaje(sock, remitente, result.respuesta, 'respuesta enviada')
         }
       }
     })

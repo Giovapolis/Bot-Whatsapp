@@ -22,6 +22,8 @@ async function getVertexToken() {
   return token.token
 }
 
+const AI_TIMEOUT = 30000
+
 async function generar(sistema, mensaje) {
   return generarTexto(sistema, mensaje, false)
 }
@@ -92,7 +94,8 @@ async function generarOpenAI(sistema, mensaje, jsonMode) {
     const res = await fetch(AI_API_URL, {
       method: 'POST',
       headers: headers,
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(AI_TIMEOUT)
     })
 
     if (!res.ok) {
@@ -131,7 +134,8 @@ async function generarGemini(sistema, mensaje, jsonMode) {
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(AI_TIMEOUT)
     })
 
     if (!res.ok) {
@@ -183,7 +187,8 @@ async function generarGeminiVertex(sistema, mensaje, jsonMode) {
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(AI_TIMEOUT)
       })
 
       if (!res.ok) {
