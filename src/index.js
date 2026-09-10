@@ -1,7 +1,7 @@
 require('dotenv').config()
 
 const { iniciar, agregarPedido } = require('./server')
-const whatsapp = require('./whatsapp')
+const sesiones = require('./sesiones')
 const responses = require('./responses')
 const ordenes = require('./ordenes')
 const { delay, enviarMensaje, esCancelacion, truncarTexto } = require('./utils')
@@ -55,7 +55,7 @@ async function procesarArmado(telefono, texto) {
 
 async function main() {
   const io = await iniciar(puerto)
-  function configurarSocket(sock) {
+  function configurarSocket(sock, sessionId) {
     sock.ev.on('messages.upsert', async ({ messages }) => {
       for (const msg of messages) {
         if (msg.key.fromMe) continue
@@ -93,7 +93,7 @@ async function main() {
           ''
         if (!texto) continue
         texto = truncarTexto(texto)
-        console.log('[MSG] ' + nombre + ': "' + texto + '"')
+        console.log('[MSG] ' + nombre + ' [' + sessionId + ']: "' + texto + '"')
         const sesion = ordenes.obtenerSesion(telefono)
         if (sesion) {
           let respuesta = null
@@ -160,7 +160,7 @@ async function main() {
       }
     })
   }
-  await whatsapp.iniciar(io, configurarSocket)
+  await sesiones.iniciarTodas(io, configurarSocket)
 }
 
 main().catch(err => {

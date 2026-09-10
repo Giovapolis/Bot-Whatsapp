@@ -113,17 +113,25 @@
         </div>
 
         <!-- QR Section -->
-        <div id="sectionQr" class="hidden qr-section">
-          <h2>Vinculacion WhatsApp</h2>
-          <p class="subtitle">Escanea el codigo QR con tu WhatsApp para conectar el bot</p>
-          <div class="qr-wrapper">
-            <img id="qrLarge" src="" alt="QR WhatsApp" style="display:none">
+        <div id="sectionQr" class="hidden">
+          <div class="qr-header">
+            <div>
+              <h2>Numeros vinculados</h2>
+              <p class="subtitle">Cada numero necesita su propio WhatsApp vinculado. Escanea el QR de cada tarjeta para agregarlo.</p>
+            </div>
+            <button class="btn-primary btn-add-session" id="addSessionBtn" onclick="agregarSesion()">+ Agregar numero</button>
           </div>
-          <div id="qrStatusMsg"></div>
-          <p class="hint">
+          <div id="sessionError" class="session-error" style="display:none"></div>
+          <div id="sessionList" class="session-list"></div>
+          <div class="empty-state hidden" id="emptySessions">
+            <div class="icon">&#128241;</div>
+            <p>No hay numeros registrados</p>
+            <div class="sub">Agrega tu primer numero para empezar</div>
+          </div>
+          <p class="hint qr-global-hint">
             1. Abre WhatsApp en tu celular<br>
             2. Toca Menu > Dispositivos vinculados<br>
-            3. Escanea este codigo
+            3. Escanea el codigo de la tarjeta
           </p>
         </div>
 
