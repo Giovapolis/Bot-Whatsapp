@@ -69,7 +69,7 @@ function salir() {
 }
 
 // Sidebar mobile
-toggleSidebar = function() {
+function toggleSidebar() {
   var sidebar = document.getElementById('sidebar')
   var overlay = document.getElementById('sidebarOverlay')
   sidebar.classList.toggle('open')
@@ -109,20 +109,109 @@ function cambiarSeccion(seccion) {
   overlay.classList.remove('active')
 }
 
-// QR
+// Sesiones WhatsApp
+var sesiones = []
+var qrRetryTimer = null
+
+function seccionQrVisible() {
+  return !document.getElementById('sectionQr').classList.contains('hidden')
+}
+
 function actualizarQrSection() {
-  var img = document.getElementById('qrLarge')
-  var msg = document.getElementById('qrStatusMsg')
-  if (conectado) {
-    img.style.display = 'none'
-    msg.innerHTML = '<span style="color:#34d399;">WhatsApp conectado correctamente</span>'
-  } else if (qrActual) {
-    img.style.display = 'block'
-    img.src = qrActual
-    msg.innerHTML = '<span style="color:#8a8a8a;">Esperando escaneo...</span>'
-  } else {
-    img.style.display = 'none'
-    msg.innerHTML = '<span style="color:#8a8a8a;">Generando codigo QR...</span>'
+  renderSesiones()
+  actualizarEstadoGlobal()
+  if (socket) socket.emit('listar_sesiones')
+  var pendiente = sesiones.some(function(s) { return !s.conectado })
+  if (pendiente) iniciarReintentoQr()
+}
+
+function iniciarReintentoQr() {
+  detenerReintentoQr()
+  qrRetryTimer = setInterval(function() {
+    if (!seccionQrVisible()) { detenerReintentoQr(); return }
+    var pendiente = sesiones.some(function(s) { return !s.conectado && !s.qrDataUri })
+    if (pendiente && socket) socket.emit('listar_sesiones')
+    if (!pendiente) detenerReintentoQr()
+  }, 5000)
+}
+
+function detenerReintentoQr() {
+  if (qrRetryTimer) { clearInterval(qrRetryTimer); qrRetryTimer = null }
+}
+
+function renderSesiones() {
+  var list = document.getElementById('sessionList')
+  var empty = document.getElementById('emptySessions')
+  if (!sesiones.length) {
+    list.innerHTML = ''
+    empty.classList.remove('hidden')
+    return
+  }
+  empty.classList.add('hidden')
+  list.innerHTML = sesiones.map(function(s) {
+    var estadoHtml = s.conectado
+      ? '<span class="estado-tag conectado">Conectado' + (s.telefono ? ' · ' + e(s.telefono) : '') + '</span>'
+      : '<span class="estado-tag pendiente">Esperando escaneo</span>'
+    var qrHtml = ''
+    if (!s.conectado) {
+      if (s.qrDataUri) {
+        qrHtml = '<div class="qr-wrapper"><img src="' + s.qrDataUri + '" alt="QR ' + e(s.etiqueta) + '"></div>' +
+          '<div class="qr-note">Este codigo vence en segundos y se actualiza solo. Escanealo pronto.</div>'
+      } else {
+        qrHtml = '<div class="qr-loading">Generando codigo QR...</div>'
+      }
+    }
+    var telHtml = s.telefono ? '<span class="order-phone">' + e(s.telefono) + '</span>' : ''
+    return '<div class="session-card" data-id="' + e(s.id) + '">' +
+      '<div class="order-info">' +
+        '<div class="order-header">' +
+          '<span class="order-name">' + e(s.etiqueta) + '</span>' + telHtml + estadoHtml +
+        '</div>' +
+        qrHtml +
+        '<div class="order-footer"><div class="order-actions">' +
+          '<button class="btn-attend btn-prep" onclick="solicitarQrSesion(\'' + e(s.id) + '\')">Actualizar QR</button>' +
+          (s.conectado ? '<button class="btn-attend" onclick="desvincularSesion(\'' + e(s.id) + '\')">Desvincular</button>' : '') +
+          '<button class="btn-attend btn-done" onclick="eliminarSesion(\'' + e(s.id) + '\')">Eliminar</button>' +
+        '</div></div>' +
+      '</div>' +
+    '</div>'
+  }).join('')
+}
+
+function mostrarSesionError(texto) {
+  var el = document.getElementById('sessionError')
+  el.textContent = texto
+  el.style.display = 'block'
+  setTimeout(function() { el.style.display = 'none' }, 5000)
+}
+
+function agregarSesion() {
+  var etiqueta = window.prompt('Nombre para este numero (ej. Ventas, Soporte):', '')
+  if (etiqueta === null) return
+  if (socket) socket.emit('crear_sesion', { etiqueta: etiqueta })
+}
+
+function solicitarQrSesion(id) {
+  if (socket) socket.emit('solicitar_qr', { sessionId: id })
+}
+
+function desvincularSesion(id) {
+  if (!window.confirm('Desvincular este numero? Se generara un QR nuevo para vincular otro.')) return
+  if (socket) socket.emit('desvincular_sesion', { sessionId: id })
+}
+
+function eliminarSesion(id) {
+  if (!window.confirm('Eliminar este numero del bot?')) return
+  if (socket) socket.emit('eliminar_sesion', { sessionId: id })
+}
+
+function actualizarEstadoGlobal() {
+  var alguno = sesiones.some(function(s) { return s.conectado })
+  setStatus(alguno)
+  var meta = document.getElementById('sectionMeta')
+  if (seccionQrVisible()) {
+    var n = sesiones.filter(function(s) { return s.conectado }).length
+    meta.textContent = n + ' de ' + sesiones.length + ' conectados'
   }
 }
 
@@ -136,28 +225,65 @@ function conectarSocket() {
     document.getElementById('statusText').textContent = 'Error'
   })
 
-  socket.on('qr', function(data) {
-    qrActual = data.qrDataUri
-    document.getElementById('qrLarge').src = data.qrDataUri
-    document.getElementById('qrLarge').style.display = 'block'
-    document.getElementById('qrStatusMsg').innerHTML = '<span style="color:#8a8a8a;">Esperando escaneo...</span>'
-    setStatus(false)
+  socket.on('sesiones_actuales', function(data) {
+    sesiones = Array.isArray(data) ? data : []
+    for (var i = 0; i < sesiones.length; i++) {
+      if (sesiones[i].qrDataUri) qrActual = sesiones[i].qrDataUri
+    }
+    renderSesiones()
+    actualizarEstadoGlobal()
+    if (seccionQrVisible()) {
+      var pendiente = sesiones.some(function(s) { return !s.conectado && !s.qrDataUri })
+      if (pendiente) iniciarReintentoQr()
+    }
   })
 
-  socket.on('conn_ready', function() {
+  socket.on('qr', function(data) {
+    var s = null
+    for (var i = 0; i < sesiones.length; i++) {
+      if (sesiones[i].id === data.sessionId) s = sesiones[i]
+    }
+    if (s) {
+      s.qrDataUri = data.qrDataUri
+      s.qrFecha = data.qrFecha
+      s.conectado = false
+    } else {
+      sesiones.push({ id: data.sessionId, etiqueta: data.sessionId, conectado: false, telefono: null, qrDataUri: data.qrDataUri, qrFecha: data.qrFecha })
+    }
+    qrActual = data.qrDataUri
+    renderSesiones()
+    actualizarEstadoGlobal()
+  })
+
+  socket.on('conn_ready', function(data) {
+    var id = data && data.sessionId ? data.sessionId : null
+    for (var i = 0; i < sesiones.length; i++) {
+      if (!id || sesiones[i].id === id) {
+        sesiones[i].conectado = true
+        sesiones[i].qrDataUri = null
+        if (data && data.telefono) sesiones[i].telefono = data.telefono
+      }
+    }
     conectado = true
-    document.getElementById('qrLarge').style.display = 'none'
-    document.getElementById('qrStatusMsg').innerHTML = '<span style="color:#34d399;">WhatsApp conectado correctamente</span>'
-    setStatus(true)
+    renderSesiones()
+    actualizarEstadoGlobal()
   })
 
   socket.on('conn_error', function(data) {
-    conectado = false
-    setStatus(false)
-    qrActual = ''
-    document.getElementById('qrLarge').style.display = 'none'
-    var errText = data && data.error ? e(data.error) : 'Error de conexion'
-    document.getElementById('qrStatusMsg').innerHTML = '<span style="color:#f87171;">' + errText + '</span>'
+    var id = data && data.sessionId ? data.sessionId : null
+    for (var i = 0; i < sesiones.length; i++) {
+      if (!id || sesiones[i].id === id) {
+        sesiones[i].conectado = false
+        if (!data.transitorio) sesiones[i].qrDataUri = null
+      }
+    }
+    renderSesiones()
+    actualizarEstadoGlobal()
+    if (data && data.error && !data.transitorio) mostrarSesionError(data.error)
+  })
+
+  socket.on('sesion_error', function(data) {
+    mostrarSesionError(data && data.error ? data.error : 'Error de sesion')
   })
 
   socket.on('nuevo_pedido', function(pedido) {
@@ -182,6 +308,7 @@ function conectarSocket() {
   })
 
   socket.emit('obtener_pedidos')
+  socket.emit('listar_sesiones')
 }
 
 // Actions
