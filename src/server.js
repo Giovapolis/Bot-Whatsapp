@@ -65,21 +65,49 @@ async function iniciar(puerto) {
   })
 
   io.on('connection', (socket) => {
-    const whatsapp = require('./whatsapp')
-    const estado = whatsapp.obtenerEstado()
-    if (estado.qrDataUri) {
-      socket.emit('qr', { qrDataUri: estado.qrDataUri })
-    }
-    if (estado.conectado) {
-      socket.emit('conn_ready')
-    }
+    const sesiones = require('./sesiones')
+    socket.emit('sesiones_actuales', sesiones.listar())
 
-    socket.on('solicitar_qr', () => {
-      const estado = whatsapp.obtenerEstado()
+    socket.on('solicitar_qr', (payload) => {
+      const sessionId = payload && (payload.sessionId || payload)
+      const id = typeof sessionId === 'string' ? sessionId : null
+      const estado = sesiones.obtenerEstado(id)
+      if (!estado) return
       if (estado.conectado) {
-        socket.emit('conn_ready')
+        socket.emit('conn_ready', { sessionId: id })
       } else if (estado.qrDataUri) {
-        socket.emit('qr', { qrDataUri: estado.qrDataUri })
+        socket.emit('qr', { sessionId: id, qrDataUri: estado.qrDataUri })
+      }
+    })
+
+    socket.on('listar_sesiones', () => {
+      socket.emit('sesiones_actuales', sesiones.listar())
+    })
+
+    socket.on('crear_sesion', async ({ etiqueta } = {}) => {
+      const r = await sesiones.crearSesion(etiqueta)
+      if (r.error) {
+        socket.emit('sesion_error', { error: r.error })
+      } else {
+        socket.emit('sesiones_actuales', sesiones.listar())
+      }
+    })
+
+    socket.on('eliminar_sesion', async ({ sessionId } = {}) => {
+      const r = await sesiones.eliminarSesion(sessionId)
+      if (r.error) {
+        socket.emit('sesion_error', { error: r.error })
+      } else {
+        socket.emit('sesiones_actuales', sesiones.listar())
+      }
+    })
+
+    socket.on('desvincular_sesion', async ({ sessionId } = {}) => {
+      const r = await sesiones.desvincular(sessionId)
+      if (r.error) {
+        socket.emit('sesion_error', { error: r.error })
+      } else {
+        socket.emit('sesiones_actuales', sesiones.listar())
       }
     })
 
