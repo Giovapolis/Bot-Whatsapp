@@ -110,8 +110,13 @@ async function iniciar(io, onConnect) {
         await delay(3000)
         iniciar(io, onConnect)
       } else {
+        console.warn('[WA] Sesion cerrada por desvinculacion. Limpiando y generando QR nuevo...')
         estado.conectado = false
+        estado.qrDataUri = null
         io.emit('conn_error', { error: 'Sesion cerrada. Escanea el QR nuevamente.' })
+        limpiarAuth()
+        await delay(2000)
+        iniciar(io, onConnect)
       }
     }
   })

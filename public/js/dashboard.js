@@ -69,7 +69,7 @@ function salir() {
 }
 
 // Sidebar mobile
-function toggleSidebar() {
+toggleSidebar = function() {
   var sidebar = document.getElementById('sidebar')
   var overlay = document.getElementById('sidebarOverlay')
   sidebar.classList.toggle('open')
@@ -163,6 +163,7 @@ function conectarSocket() {
   socket.on('nuevo_pedido', function(pedido) {
     pedidos.unshift(pedido)
     renderizar()
+    reproducirSonidoNuevoPedido()
   })
 
   socket.on('pedidos_actuales', function(data) {
@@ -254,11 +255,51 @@ function renderList(listId, emptyId, items) {
 }
 
 // Utils
+function reproducirSonidoNuevoPedido() {
+  try {
+    var AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    var ctx = new AudioContext();
+    var osc1 = ctx.createOscillator();
+    var osc2 = ctx.createOscillator();
+    var gainNode = ctx.createGain();
+    
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(523.25, ctx.currentTime);
+    osc1.frequency.exponentialRampToValueAtTime(880.00, ctx.currentTime + 0.15);
+    
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(659.25, ctx.currentTime);
+    osc2.frequency.exponentialRampToValueAtTime(1046.50, ctx.currentTime + 0.15);
+    
+    gainNode.gain.setValueAtTime(0.12, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+    
+    osc1.connect(gainNode);
+    osc2.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    osc1.start();
+    osc2.start();
+    osc1.stop(ctx.currentTime + 0.6);
+    osc2.stop(ctx.currentTime + 0.6);
+  } catch (err) {
+    console.error('[AUDIO] No se pudo reproducir sonido:', err);
+  }
+}
+
 function setStatus(online) {
   conectado = online
   var badge = document.getElementById('statusBadge')
-  badge.className = 'status-badge ' + (online ? 'online' : 'offline')
-  document.getElementById('statusText').textContent = online ? 'Conectado' : 'Desconectado'
+  if (badge) {
+    badge.className = 'status-badge ' + (online ? 'online' : 'offline')
+    document.getElementById('statusText').textContent = online ? 'Conectado' : 'Desconectado'
+  }
+  var headerBadge = document.getElementById('headerStatusBadge')
+  if (headerBadge) {
+    headerBadge.className = 'status-badge ' + (online ? 'online' : 'offline')
+    document.getElementById('headerStatusText').textContent = online ? 'Conectado' : 'Desconectado'
+  }
 }
 
 function e(str) {

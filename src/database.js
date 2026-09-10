@@ -1,6 +1,10 @@
 const { Pool } = require("pg");
+const fs = require("fs");
+const path = require("path");
+
 const DIAS_RETENCION = parseInt(process.env.CLEANUP_DAYS || "15");
 const URL_BD = process.env.DATABASE_URL || "";
+const devDbPath = path.join(__dirname, "..", "data", "pedidos_dev.json");
 
 let pool = null;
 
@@ -26,7 +30,19 @@ async function inicializar() {
     );
     return rows;
   }
-  console.log("[DB] Modo memoria (dev)");
+  console.log("[DB] Modo archivo local JSON (dev)");
+  try {
+    const dir = path.dirname(devDbPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    if (fs.existsSync(devDbPath)) {
+      const raw = fs.readFileSync(devDbPath, "utf8");
+      return JSON.parse(raw || "[]");
+    }
+  } catch (err) {
+    console.error("[ERR] Al cargar base de datos dev JSON: " + err.message);
+  }
   return [];
 }
 
@@ -45,6 +61,18 @@ async function guardarPedido(data) {
         data.estado,
       ],
     );
+  } else {
+    try {
+      let items = [];
+      if (fs.existsSync(devDbPath)) {
+        const raw = fs.readFileSync(devDbPath, "utf8");
+        items = JSON.parse(raw || "[]");
+      }
+      items.unshift(data);
+      fs.writeFileSync(devDbPath, JSON.stringify(items, null, 2), "utf8");
+    } catch (err) {
+      console.error("[ERR] Al guardar pedido en JSON dev: " + err.message);
+    }
   }
 }
 
@@ -54,6 +82,20 @@ async function actualizarEstado(id, estado) {
       estado,
       id,
     ]);
+  } else {
+    try {
+      if (fs.existsSync(devDbPath)) {
+        const raw = fs.readFileSync(devDbPath, "utf8");
+        let items = JSON.parse(raw || "[]");
+        const p = items.find((item) => item.id === id);
+        if (p) {
+          p.estado = estado;
+          fs.writeFileSync(devDbPath, JSON.stringify(items, null, 2), "utf8");
+        }
+      }
+    } catch (err) {
+      console.error("[ERR] Al actualizar estado en JSON dev: " + err.message);
+    }
   }
 }
 

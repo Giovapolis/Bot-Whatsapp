@@ -76,7 +76,7 @@ async function generarOpenAI(sistema, mensaje, jsonMode) {
   }
 
   const body = {
-    ...(AI_MODELS.length > 1 ? { models: AI_MODELS } : { model: AI_MODELS[0] }),
+    ...(AI_PROVIDER === 'openrouter' && AI_MODELS.length > 1 ? { models: AI_MODELS } : { model: AI_MODELS[0] }),
     ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
     messages: [
       { role: 'system', content: sistema },
@@ -192,20 +192,20 @@ async function generarGeminiVertex(sistema, mensaje, jsonMode) {
         signal: AbortSignal.timeout(AI_TIMEOUT)
       })
 
-      if (!res.ok) {
-        const errText = await res.text()
-        console.error('[ERR] Vertex ' + model + ': ' + res.status + ' ' + errText)
-        continue
-      }
-
-      const data = await res.json()
-      const texto = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
-      if (texto) return texto.trim()
-      console.error('[ERR] Vertex ' + model + ': respuesta vacia')
-    } catch (err) {
-      console.error('[ERR] Vertex ' + model + ': ' + err.message)
+    if (!res.ok) {
+      const errText = await res.text()
+      console.error('[ERR] Vertex ' + model + ': ' + res.status + ' ' + errText)
+      continue
     }
+
+    const data = await res.json()
+    const texto = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+    if (texto) return texto.trim()
+    console.error('[ERR] Vertex ' + model + ': respuesta vacia')
+  } catch (err) {
+    console.error('[ERR] Vertex ' + model + ': ' + err.message)
   }
+}
 
   console.error('[ERR] Vertex: todos los modelos fallaron')
   return 'Disculpa, todos mis canales de IA estan ocupados. Intenta de nuevo mas tarde.'
