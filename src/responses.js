@@ -10,14 +10,23 @@ function obtenerPrompt() {
   return systemPrompt
 }
 
-async function procesar(texto) {
-  const prompt = obtenerPrompt()
-  const respuesta = await ai.generar(prompt, texto)
+function esPedidoDetectado(respuesta) {
+  if (!respuesta) return false
+  const limpio = String(respuesta).trim().replace(/[*_`#>\-]/g, '').trim().toUpperCase()
+  if (limpio === 'PEDIDO') return true
+  if (/^PEDIDO[.!]*$/.test(limpio)) return true
+  return false
+}
 
-  if (respuesta === 'PEDIDO') {
+async function procesar(texto, historialTexto) {
+  const prompt = obtenerPrompt()
+  const mensaje = historialTexto
+    ? 'Historial reciente:\n' + historialTexto + '\n\nMensaje actual del cliente:\n"' + texto + '"'
+    : texto
+  const respuesta = await ai.generar(prompt, mensaje)
+  if (esPedidoDetectado(respuesta)) {
     return { respuesta: 'PEDIDO', esPedido: true }
   }
-
   return { respuesta, esPedido: false }
 }
 
@@ -33,8 +42,8 @@ function normalizarItems(input) {
         const nombre = item.nombre || item.name || item.item || item.product || item.plato || null
         if (!nombre) return null
         const cantidad = parseInt(item.cantidad || item.qty || item.quantity, 10) || 1
-        const detalle = item.detalle || item.detail || item.note || null
-        return { nombre: String(nombre).trim(), cantidad: cantidad, detalle: detalle }
+        const detalle = item.detalle || item.detail || item.note || item.salsa || item.sabor || null
+        return { nombre: String(nombre).trim(), cantidad: Math.max(1, cantidad), detalle: detalle ? String(detalle).trim() : null }
       }
       return null
     }).filter(Boolean)
@@ -49,7 +58,8 @@ function normalizarItems(input) {
     const nombre = input.nombre || input.name || input.item || input.product || input.plato || null
     if (nombre) {
       const cantidad = parseInt(input.cantidad || input.qty, 10) || 1
-      return [{ nombre: String(nombre).trim(), cantidad: cantidad, detalle: input.detalle || null }]
+      const detalle = input.detalle || input.detail || input.salsa || input.sabor || null
+      return [{ nombre: String(nombre).trim(), cantidad: Math.max(1, cantidad), detalle: detalle ? String(detalle).trim() : null }]
     }
   }
   return []
@@ -59,35 +69,34 @@ function formatearCarrito(articulos) {
   if (!articulos || articulos.length === 0) return 'Carrito vacio.'
   return articulos.map(i => {
     let linea = '  ' + i.cantidad + 'x ' + i.nombre + ' — $' + (i.precio * i.cantidad)
-    if (i.detalle) linea += '\n    ' + i.detalle
+    if (i.detalle) linea += ' (' + i.detalle + ')'
     return linea
   }).join('\n')
 }
 
 function ticket(sesion) {
   if (!sesion || !sesion.articulos || sesion.articulos.length === 0) {
-    return 'Tu carrito esta vacio.\nAgrega algo del menu para comenzar.'
+    return 'Tu carrito esta vacio.\nDime que se te antoja del menu para empezar.'
   }
   const lineas = []
-  lineas.push('╔═══════════════════════╗')
-  lineas.push('║  ' + negocio.nombre.toUpperCase() + '  ║')
-  lineas.push('╚═══════════════════════╝')
+  lineas.push(negocio.nombre)
+  lineas.push('Tu pedido:')
   lineas.push('')
   for (const a of sesion.articulos) {
     const sub = a.precio * a.cantidad
-    lineas.push('  ' + a.cantidad + 'x ' + a.nombre + ' — $' + sub)
-    if (a.detalle) lineas.push('    ' + a.detalle)
+    let linea = a.cantidad + 'x ' + a.nombre
+    if (a.detalle) linea += ' (' + a.detalle + ')'
+    linea += ' - $' + sub
+    lineas.push(linea)
   }
   lineas.push('')
-  lineas.push('───────────────────────')
-  lineas.push('  TOTAL: $' + sesion.total)
-  lineas.push('───────────────────────')
+  lineas.push('Total: $' + sesion.total)
   return lineas.join('\n')
 }
 
-async function armando(articulos, texto) {
+async function armando(articulos, texto, historialTexto) {
   const prompt = [
-    'Sos el mesero de "' + negocio.nombre + '". Estas armando un pedido por WhatsApp.',
+    'Eres el mesero de "' + negocio.nombre + '" en Mexico. Tomas pedidos por WhatsApp de forma calida, natural y breve. Hablas de tu, sin voseo.',
     '',
     'MENU:',
     formatearMenu(),
@@ -95,51 +104,54 @@ async function armando(articulos, texto) {
     'CARRITO ACTUAL:',
     formatearCarrito(articulos),
     '',
-    'EL CLIENTE DICE:',
+    historialTexto ? 'HISTORIAL RECIENTE:\n' + historialTexto + '\n' : '',
+    'EL CLIENTE DICE AHORA:',
     '"' + texto + '"',
     '',
-    'Devolve SOLO un JSON valido con este formato exacto:',
+    'Devuelve SOLO un JSON valido con este formato exacto:',
     '',
     '{"agregar":[],"quitar":[],"finalizar":false,"resumen":"tu respuesta"}',
     '',
     'CAMPOS:',
-    '- agregar: array de objetos con "nombre" (exacto del menu), "cantidad" (numero), "detalle" (string o null)',
+    '- agregar: array de objetos con "nombre" exacto del menu, "cantidad" numero, "detalle" con salsa o sabor o null',
     '- quitar: array de objetos con "nombre" y "cantidad"',
-    '- finalizar: true SOLO si el cliente dice que ya no quiere nada mas',
-    '- resumen: tu respuesta natural como mesero',
+    '- finalizar: true SOLO si el cliente dice que ya no quiere nada mas, que es todo o pide la cuenta',
+    '- resumen: tu respuesta natural como mesero mexicano, breve, calida, de tu, maximo 2 lineas',
     '',
     'NOMBRES EXACTOS DEL MENU:',
     '- Alitas ($85)',
     '- Costillas BBQ ($95)',
     '- Salchipulpos ($45)',
     '- Papas a la francesa ($45)',
-    '- Tutifruti ($25)',
-    '- Limon ($25)',
-    '- Uva ($25)',
-    '- Mango ($25)',
-    '- Guayaba ($25)',
-    '- Natural ($25)',
+    '- Refresco de Tutifruti ($25)',
+    '- Refresco de Limón ($25)',
+    '- Refresco de Uva ($25)',
+    '- Jugo de Mango ($25)',
+    '- Jugo de Guayaba ($25)',
+    '- Agua Natural ($25)',
+    '',
+    'SALSAS VALIDAS: BBQ, Mango Habanero, Tamarindo, Ranch, Fresa Tajín, Chipotle Frutos Rojos',
     '',
     'REGLAS IMPORTANTES:',
-    '- El campo "agregar" SIEMPRE debe ser un array de objetos, NUNCA un string.',
-    '- Ejemplo correcto: {"agregar":[{"nombre":"Alitas","cantidad":1,"detalle":null}]}',
-    '- Ejemplo INCORRECTO: {"agregar":"Alitas"}',
-    '- Si pide alitas/costillas sin salsa: detalle null, preguntar la salsa.',
-    '- Si pide refresco/jugo sin sabor: detalle null, preguntar el sabor.',
+    '- "agregar" SIEMPRE es array de objetos, NUNCA string.',
+    '- Si pide alitas o costillas con salsa incluida en el mismo mensaje, guarda el detalle de una vez.',
+    '- Si pide alitas o costillas sin salsa, deja detalle null y pregunta la salsa de forma natural en el resumen.',
+    '- Si solo aclara la salsa de algo que ya esta en el carrito, devuelve agregar con ese mismo producto y el detalle para actualizar, sin aumentar de mas.',
+    '- Si pide refresco, jugo o agua sin sabor, deja detalle null y pregunta el sabor en el resumen.',
+    '- "costillitas", "costilla", "alita" son formas coloquiales de Costillas BBQ y Alitas.',
+    '- "mango" solo normalmente es Jugo de Mango. "Mango Habanero" es salsa.',
+    '- En el resumen no repitas el ticket completo, no uses arte ASCII, no uses cuadros. Solo confirma brevemente y pregunta si quiere algo mas.',
+    '- Si finalizar es true, confirma brevemente que el pedido esta completo, sin pedir ubicacion, la ubicacion la pide el sistema despues.',
   ].join('\n')
-
   const raw = await ai.generarJSON(prompt, texto)
   console.log('[IA JSON]', JSON.stringify(raw))
-
   if (!raw || typeof raw !== 'object') {
     console.log('[IA] raw no es objeto:', typeof raw)
     return { agregar: [], quitar: [], finalizar: false, resumen: null }
   }
-
   const agregar = normalizarItems(raw.agregar)
   const quitar = normalizarItems(raw.quitar)
   console.log('[IA] agregar normalizado:', JSON.stringify(agregar), 'quitar:', JSON.stringify(quitar))
-
   return {
     agregar: agregar,
     quitar: quitar,
@@ -148,4 +160,27 @@ async function armando(articulos, texto) {
   }
 }
 
-module.exports = { procesar, armando, ticket }
+async function extraerItems(texto, historialTexto) {
+  const prompt = [
+    'Eres el extractor de pedidos de "' + negocio.nombre + '".',
+    '',
+    'MENU:',
+    formatearMenu(),
+    '',
+    historialTexto ? 'HISTORIAL:\n' + historialTexto + '\n' : '',
+    'MENSAJE:',
+    '"' + texto + '"',
+    '',
+    'Devuelve SOLO JSON: {"tienePedido":false,"items":[]}',
+    'Si el mensaje menciona comida o bebida del menu para ordenar, tienePedido true e items con nombre exacto del menu, cantidad y detalle de salsa o sabor o null.',
+    'Si solo saluda o pregunta informacion, tienePedido false.',
+  ].join('\n')
+  const raw = await ai.generarJSON(prompt, texto)
+  if (!raw || typeof raw !== 'object') return { tienePedido: false, items: [] }
+  if (!raw.tienePedido) return { tienePedido: false, items: [] }
+  const items = normalizarItems(raw.items || raw.agregar || [])
+  if (!items.length) return { tienePedido: false, items: [] }
+  return { tienePedido: true, items: items }
+}
+
+module.exports = { procesar, armando, extraerItems, ticket }
